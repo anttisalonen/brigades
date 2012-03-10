@@ -15,6 +15,7 @@ class App {
 		void initInput();
 		void createCube();
 		void createTerrain();
+		void createTerrainTexture();
 		std::unique_ptr<Ogre::Root> mRoot;
 		Ogre::RenderWindow* mWindow;
 		Ogre::SceneManager* mScene;
@@ -22,14 +23,12 @@ class App {
 		Ogre::Camera* mCamera;
 		Ogre::SceneNode* mCamNode;
 		Ogre::Viewport* mViewport;
-		Ogre::String resourcename;
 		OIS::InputManager* mInputManager;
 		OIS::Keyboard* mKeyboard;
 };
 
 App::App()
-	: mRoot(new Ogre::Root("", "", "")),
-	resourcename("Resources")
+	: mRoot(new Ogre::Root("", "", ""))
 {
 	mRoot->loadPlugin(OGRE_PLUGIN_DIR "/RenderSystem_GL");
 	mRoot->loadPlugin(OGRE_PLUGIN_DIR "/Plugin_OctreeSceneManager");
@@ -70,12 +69,14 @@ App::App()
 	}
 }
 
+#define APP_RESOURCE_NAME "Resources"
+
 void App::initResources()
 {
-	Ogre::ResourceGroupManager::getSingleton().createResourceGroup(resourcename);
-	Ogre::ResourceGroupManager::getSingleton().addResourceLocation("share", "FileSystem", resourcename, false);
-	Ogre::ResourceGroupManager::getSingleton().initialiseResourceGroup(resourcename);
-	Ogre::ResourceGroupManager::getSingleton().loadResourceGroup(resourcename);
+	Ogre::ResourceGroupManager::getSingleton().createResourceGroup(APP_RESOURCE_NAME);
+	Ogre::ResourceGroupManager::getSingleton().addResourceLocation("share", "FileSystem", APP_RESOURCE_NAME, false);
+	Ogre::ResourceGroupManager::getSingleton().initialiseResourceGroup(APP_RESOURCE_NAME);
+	Ogre::ResourceGroupManager::getSingleton().loadResourceGroup(APP_RESOURCE_NAME);
 }
 
 void App::initInput()
@@ -94,16 +95,51 @@ void App::createCube()
 	cubeNode->translate(1, 1, 1);
 }
 
+void App::createTerrainTexture()
+{
+	Ogre::TexturePtr texture = Ogre::TextureManager::getSingleton().createManual("TerrainTexture",
+			APP_RESOURCE_NAME,
+			Ogre::TEX_TYPE_2D,
+			256, 256,
+			0,
+			Ogre::PF_BYTE_RGBA,
+			Ogre::TU_DEFAULT);
+	Ogre::HardwarePixelBufferSharedPtr pixelBuffer = texture->getBuffer();
+	pixelBuffer->lock(Ogre::HardwareBuffer::HBL_NORMAL);
+	const Ogre::PixelBox& pixelBox = pixelBuffer->getCurrentLock();
+	Ogre::uint8* pDest = static_cast<Ogre::uint8*>(pixelBox.data);
+
+	for (size_t j = 0; j < 256; j++) {
+		for(size_t i = 0; i < 256; i++) {
+			*pDest++ = 255; // B
+			*pDest++ =   0; // G
+			*pDest++ =   0; // R
+			*pDest++ = 127; // A
+		}
+	}
+
+	// Unlock the pixel buffer
+	pixelBuffer->unlock();
+
+	// Create a material using the texture
+	Ogre::MaterialPtr material = Ogre::MaterialManager::getSingleton().create("TerrainMaterial",
+			APP_RESOURCE_NAME);
+
+	material->getTechnique(0)->getPass(0)->createTextureUnitState("TerrainTexture");
+	material->getTechnique(0)->getPass(0)->setSceneBlending(Ogre::SBT_TRANSPARENT_ALPHA);
+}
+
 void App::createTerrain()
 {
+	createTerrainTexture();
 	Ogre::Plane plane;
 	plane.normal = Ogre::Vector3::UNIT_Z;
 	plane.d = 0.0f;
 	Ogre::MeshManager::getSingleton().createPlane("terrain1",
-			resourcename, plane, 128, 128, 4, 4, true,
+			APP_RESOURCE_NAME, plane, 128, 128, 4, 4, true,
 			1, 1.0f, 1.0f, Ogre::Vector3::UNIT_Y);
 	Ogre::Entity* planeEnt = mScene->createEntity("plane1", "terrain1");
-	planeEnt->setMaterialName("Cube");
+	planeEnt->setMaterialName("TerrainMaterial");
 	planeEnt->setCastShadows(false);
 	mRootNode->createChildSceneNode()->attachObject(planeEnt);
 }
