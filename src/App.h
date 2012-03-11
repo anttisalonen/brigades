@@ -39,6 +39,7 @@ class App : public OIS::KeyListener {
 		bool mRunning;
 		float mUpVelocity;
 		float mRightVelocity;
+		float mForwardVelocity;
 		int mMapRenderType;
 };
 

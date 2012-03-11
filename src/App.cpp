@@ -6,6 +6,7 @@
 App::App()
 	: mUpVelocity(0),
 	mRightVelocity(0),
+	mForwardVelocity(0),
 	mMapRenderType(0)
 {
 	// get user data directory
@@ -207,7 +208,7 @@ void App::run()
 		mRoot->renderOneFrame();
 		Ogre::WindowEventUtilities::messagePump();
 		mKeyboard->capture();
-		mCamNode->translate(mRightVelocity, mUpVelocity, 0.0f);
+		mCamNode->translate(mRightVelocity, mUpVelocity, mForwardVelocity);
 	}
 }
 
@@ -222,6 +223,12 @@ bool App::keyPressed(const OIS::KeyEvent &arg)
 			break;
 		case OIS::KC_DOWN:
 			mUpVelocity = -0.1f;
+			break;
+		case OIS::KC_PGUP:
+			mForwardVelocity = 0.1f;
+			break;
+		case OIS::KC_PGDOWN:
+			mForwardVelocity = -0.1f;
 			break;
 		case OIS::KC_RIGHT:
 			mRightVelocity = 0.1f;
@@ -247,6 +254,10 @@ bool App::keyReleased(const OIS::KeyEvent &arg)
 		case OIS::KC_UP:
 		case OIS::KC_DOWN:
 			mUpVelocity = 0.0f;
+			break;
+		case OIS::KC_PGUP:
+		case OIS::KC_PGDOWN:
+			mForwardVelocity = 0.0f;
 			break;
 		case OIS::KC_RIGHT:
 		case OIS::KC_LEFT:
