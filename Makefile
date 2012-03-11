@@ -3,10 +3,13 @@ AR       ?= ar
 CXXFLAGS ?= -std=c++0x -O2 -g3
 CXXFLAGS += -Wall
 
-CXXFLAGS += $(shell pkg-config --cflags OGRE) -DOGRE_PLUGIN_DIR="\"$(shell pkg-config --variable=plugindir OGRE)\""
+OGRE_CFLAGS ?= $(shell pkg-config --cflags OGRE)
+OGRE_PLUGIN_DIR ?= $(shell pkg-config --variable=plugindir OGRE)
+CXXFLAGS += $(OGRE_CFLAGS) -DOGRE_PLUGIN_DIR="\"$(OGRE_PLUGIN_DIR)\""
 CXXFLAGS += $(shell pkg-config --cflags OIS)
 
-LDFLAGS  += $(shell pkg-config --libs OGRE)
+OGRE_LDFLAGS ?= $(shell pkg-config --libs OGRE)
+LDFLAGS  += $(OGRE_LDFLAGS)
 LDFLAGS  += $(shell pkg-config --libs OIS)
 LDFLAGS  += -lnoise
 
