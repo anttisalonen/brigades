@@ -8,18 +8,20 @@
 #include <OIS.h>
 
 #include "Terrain.h"
+#include "Papaya.h"
 
-class App : public OIS::KeyListener {
+class App : public OIS::KeyListener, public PapayaEventListener {
 	public:
 		App();
 		~App();
 		void run();
 		bool keyPressed(const OIS::KeyEvent &arg);
 		bool keyReleased(const OIS::KeyEvent &arg);
+		void PlatoonStatusChanged(const Platoon* p);
 	private:
 		void initResources();
 		void initInput();
-		void createCube();
+		void createUnitMesh();
 		void createTerrain();
 		void createTerrainTextures();
 		void updateTerrain();
@@ -41,6 +43,9 @@ class App : public OIS::KeyListener {
 		float mRightVelocity;
 		float mForwardVelocity;
 		int mMapRenderType;
+		Papaya mPapaya;
+		std::map<int, Ogre::SceneNode*> mPlatoonEntities;
+		std::map<int, Ogre::ColourValue> mTeamColors;
 };
 
 #endif

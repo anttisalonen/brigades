@@ -27,3 +27,8 @@ float Terrain::getHeightScale() const
 	return mHeightScale;
 }
 
+float Terrain::getWidth() const
+{
+	return 128.0f;
+}
+

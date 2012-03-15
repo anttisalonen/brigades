@@ -7,7 +7,8 @@ App::App()
 	: mUpVelocity(0),
 	mRightVelocity(0),
 	mForwardVelocity(0),
-	mMapRenderType(0)
+	mMapRenderType(0),
+	mPapaya(mTerrain)
 {
 	// get user data directory
 	char* homedir = getenv("HOME");
@@ -46,19 +47,20 @@ App::App()
 		mCamNode = mRootNode->createChildSceneNode("CameraNode");
 		mCamNode->attachObject(mCamera);
 		mViewport = mWindow->addViewport(mCamera);
-		mViewport->setBackgroundColour(Ogre::ColourValue(1, 1, 1));
+		mViewport->setBackgroundColour(Ogre::ColourValue(0, 0, 0));
 		mCamera->setAspectRatio(float(mViewport->getActualWidth()) / float(mViewport->getActualHeight()));
 		mCamera->setNearClipDistance(1.5f);
 		mCamera->setFarClipDistance(3000.0f);
-		mCamera->setPosition(0, 0, 100.0f);
-		mCamera->lookAt(0, 0, 0);
+		mCamera->setPosition(64, 64, 100.0f);
+		mCamera->lookAt(64, 64, 0);
 
 		initResources();
 
 		initInput();
 
-		createCube();
+		createUnitMesh();
 		createTerrain();
+		mPapaya.addEventListener(this);
 
 		mRunning = true;
 	}
@@ -107,12 +109,14 @@ void App::initInput()
 	mKeyboard->setEventCallback(this);
 }
 
-void App::createCube()
+void App::createUnitMesh()
 {
-	Ogre::Entity* cubeEntity = mScene->createEntity("Cube.mesh");
-	Ogre::SceneNode* cubeNode = mRootNode->createChildSceneNode();
-	cubeNode->attachObject(cubeEntity);
-	cubeNode->translate(1, 1, 1);
+	Ogre::Plane plane(Ogre::Vector3::UNIT_Z, 0.0f);
+	Ogre::MeshManager::getSingleton().createPlane("UnitMesh",
+			APP_RESOURCE_NAME, plane, 0.4f, 0.4f, 4, 4, true,
+			1, 1.0f, 1.0f, Ogre::Vector3::UNIT_Y);
+	mTeamColors[1] = Ogre::ColourValue::Blue;
+	mTeamColors[2] = Ogre::ColourValue::Red;
 }
 
 void App::createTexture(const std::string& name, size_t width, size_t height,
@@ -156,12 +160,12 @@ void App::updateTerrain()
 void App::createTerrainTextures()
 {
 	const char* texturenames[] = { "TerrainTexture", "HeightTexture", "VegetationTexture"};
-	createTexture(texturenames[0], 256, 256, [&](size_t i, size_t j) {
-                        float tHeight = mTerrain.getHeightAt(i, j);
-                        float tVeg = mTerrain.getVegetationAt(i, j);
-                        float heightDiff = (tHeight - mTerrain.getHeightAt(i - 1, j)) * mTerrain.getHeightScale();
-                        float texLen = sqrt(heightDiff * heightDiff + 1);
-                        float lightnessCoeff = 1.0f + heightDiff * 0.8f / texLen;
+	createTexture(texturenames[0], mTerrain.getWidth(), mTerrain.getWidth(), [&](size_t i, size_t j) {
+			float tHeight = mTerrain.getHeightAt(i, j);
+			float tVeg = mTerrain.getVegetationAt(i, j);
+			float heightDiff = (tHeight - mTerrain.getHeightAt(i - 1, j)) * mTerrain.getHeightScale();
+			float texLen = sqrt(heightDiff * heightDiff + 1);
+			float lightnessCoeff = 1.0f + heightDiff * 0.8f / texLen;
 			float r, g, b;
 			r = (1.0f - tVeg) * 135 * lightnessCoeff; // R
 			g = 135 * lightnessCoeff; // G
@@ -169,12 +173,12 @@ void App::createTerrainTextures()
 			return std::tuple<Ogre::uint8, Ogre::uint8, Ogre::uint8>(r, g, b);
 			});
 
-	createTexture(texturenames[1], 256, 256, [&](size_t i, size_t j) {
+	createTexture(texturenames[1], mTerrain.getWidth(), mTerrain.getWidth(), [&](size_t i, size_t j) {
                         float r = mTerrain.getHeightAt(i, j) * 255;
 			return std::tuple<Ogre::uint8, Ogre::uint8, Ogre::uint8>(r, r, r);
 			});
 
-	createTexture(texturenames[2], 256, 256, [&](size_t i, size_t j) {
+	createTexture(texturenames[2], mTerrain.getWidth(), mTerrain.getWidth(), [&](size_t i, size_t j) {
                         float r = mTerrain.getVegetationAt(i, j) * 255;
 			return std::tuple<Ogre::uint8, Ogre::uint8, Ogre::uint8>(r * 0.2f, r, r * 0.2f);
 			});
@@ -186,7 +190,6 @@ void App::createTerrainTextures()
 		material->getTechnique(0)->getPass(0)->createTextureUnitState(texturenames[i]);
 		material->getTechnique(0)->getPass(0)->setSceneBlending(Ogre::SBT_TRANSPARENT_ALPHA);
 	}
-
 }
 
 void App::createTerrain()
@@ -199,12 +202,15 @@ void App::createTerrain()
 	Ogre::Entity* planeEnt = mScene->createEntity("plane1", "terrain1");
 	updateTerrain();
 	planeEnt->setCastShadows(false);
-	mRootNode->createChildSceneNode()->attachObject(planeEnt);
+	Ogre::SceneNode* planeNode = mRootNode->createChildSceneNode();
+	planeNode->attachObject(planeEnt);
+	planeNode->setPosition(64, 64, 0);
 }
 
 void App::run()
 {
 	while(mRunning && !mWindow->isClosed()) {
+		mPapaya.process(1.0f);
 		mRoot->renderOneFrame();
 		Ogre::WindowEventUtilities::messagePump();
 		mKeyboard->capture();
@@ -225,10 +231,10 @@ bool App::keyPressed(const OIS::KeyEvent &arg)
 			mUpVelocity = -0.1f;
 			break;
 		case OIS::KC_PGUP:
-			mForwardVelocity = 0.1f;
+			mForwardVelocity = 0.5f;
 			break;
 		case OIS::KC_PGDOWN:
-			mForwardVelocity = -0.1f;
+			mForwardVelocity = -0.5f;
 			break;
 		case OIS::KC_RIGHT:
 			mRightVelocity = 0.1f;
@@ -269,4 +275,46 @@ bool App::keyReleased(const OIS::KeyEvent &arg)
 	return true;
 }
 
+void App::PlatoonStatusChanged(const Platoon* p)
+{
+	const auto& it = mPlatoonEntities.find(p->getPlatoonID());
+	Ogre::SceneNode* unitNode;
+	if(it == mPlatoonEntities.end()) {
+		const std::string unitsize("Platoon");
+		const std::string unittype("Infantry");
+		std::ostringstream ss;
+		std::ostringstream materialstr;
+		ss << unitsize << p->getPlatoonID();
+		std::cerr << "Creating entity " << ss.str() << "\n";
+		Ogre::Entity* unitEnt = mScene->createEntity(ss.str(), "UnitMesh");
+		materialstr << unittype << unitsize << p->getSide();
+		std::string materialname = materialstr.str();
+		Ogre::MaterialPtr material = Ogre::MaterialManager::getSingleton().getByName(materialname,
+				APP_RESOURCE_NAME);
+		if(material.isNull()) {
+			std::cerr << "Creating material " << materialname << "\n";
+			material = Ogre::MaterialManager::getSingleton().create(materialname,
+					APP_RESOURCE_NAME);
+			material->setAmbient(mTeamColors[p->getSide()]);
+			material->getTechnique(0)->getPass(0)->setSceneBlending(Ogre::SBT_TRANSPARENT_ALPHA);
+			material->getTechnique(0)->getPass(0)->setDepthWriteEnabled(false);
+			std::string texturename1 = unittype + ".png";
+			std::string texturename2 = unitsize + ".png";
+			Ogre::TextureUnitState* t1 = material->getTechnique(0)->getPass(0)->createTextureUnitState(texturename1);
+			t1->setColourOperation(Ogre::LBO_MODULATE);
+			t1->setAlphaOperation(Ogre::LBX_MODULATE);
+			Ogre::TextureUnitState* t2 = material->getTechnique(0)->getPass(0)->createTextureUnitState(texturename2);
+			t2->setColourOperation(Ogre::LBO_MODULATE);
+			t2->setAlphaOperation(Ogre::LBX_ADD);
+		}
+		unitEnt->setMaterialName(materialname);
+		unitNode = mRootNode->createChildSceneNode();
+		unitNode->attachObject(unitEnt);
+		mPlatoonEntities[p->getPlatoonID()] = unitNode;
+	}
+	else {
+		unitNode = it->second;
+	}
+	unitNode->setPosition(p->getPosition().x, p->getPosition().y, 0.1);
+}
 

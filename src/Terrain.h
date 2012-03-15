@@ -9,6 +9,7 @@ class Terrain {
 		float getHeightAt(float x, float y) const;
 		float getVegetationAt(float x, float y) const;
 		float getHeightScale() const;
+		float getWidth() const;
 	private:
 		noise::module::Perlin mPerlin;
 		float mHeightScale;
