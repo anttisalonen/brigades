@@ -2,28 +2,38 @@
 #define MESSAGING_H
 
 #include <map>
+#include <memory>
+#include "Terrain.h"
 
 enum class MessageType {
-	UnitSpawned,
+	ClaimArea,
 };
 
 typedef int EntityID;
 
+union MessageData {
+	MessageData(const Area2& a) : Area(a) { }
+	Area2 Area;
+};
+
 class Message {
 	public:
 		Message(EntityID sender, EntityID receiver, float creationTime, float delay,
-				MessageType type, void* data);
+				MessageType type, const MessageData& data);
 		const EntityID mSender;
 		const EntityID mReceiver;
 		const float mCreationTime;
 		const float mSendTime;
-		const MessageType mType;
-		void* mData;
+		MessageType mType;
+		std::unique_ptr<MessageData> mData;
 };
 
 class Entity {
 	public:
 		virtual void receiveMessage(const Message& m) = 0;
+		EntityID getEntityID() const;
+	protected:
+		EntityID mEntityID;
 };
 
 class EntityManager {

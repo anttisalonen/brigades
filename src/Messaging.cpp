@@ -2,13 +2,13 @@
 #include "Messaging.h"
 
 Message::Message(EntityID sender, EntityID receiver, float creationTime, float delay,
-		MessageType type, void* data)
+		MessageType type, const MessageData& data)
 	: mSender(sender),
 	mReceiver(receiver),
 	mCreationTime(creationTime),
 	mSendTime(creationTime + delay),
 	mType(type),
-	mData(data)
+	mData(std::unique_ptr<MessageData>(new MessageData(data)))
 {
 }
 

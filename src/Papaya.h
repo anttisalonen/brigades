@@ -3,60 +3,109 @@
 
 #include <memory>
 #include <vector>
+#include <list>
 
 #include "Terrain.h"
 #include "Messaging.h"
 
-struct Vector2 {
-	float x;
-	float y;
-	Vector2() : x(0), y(0) { }
-	Vector2(float x_, float y_) : x(x_), y(y_) { }
-};
-
 class Platoon;
 
-class PlatoonController {
+class PlatoonController : public Entity {
 	public:
+		PlatoonController(Platoon* p);
 		virtual bool control() = 0;
+	protected:
+		Platoon* mPlatoon;
+};
+
+enum class ServiceBranch {
+	Infantry,
+	Armored,
+	Artillery,
+	Engineer,
+	Recon,
+	Signal,
+	Supply
+};
+
+const char* BranchToName(ServiceBranch b);
+
+class MilitaryUnit : public Entity {
+	public:
+		MilitaryUnit(ServiceBranch b, int side);
+		ServiceBranch getBranch() const;
+		int getSide() const;
+		virtual std::list<Platoon*> update();
+		virtual void receiveMessage(const Message& m);
+	protected:
+		ServiceBranch mBranch;
+		int mSide;
+		std::vector<std::unique_ptr<MilitaryUnit>> mUnits;
+};
+
+class MilitaryUnitController {
+	public:
+		MilitaryUnitController(MilitaryUnit* m);
+		virtual bool control() = 0;
+		virtual void receiveMessage(const Message& m);
+	protected:
+		MilitaryUnit* m;
+};
+
+class SimpleMilitaryUnitController : public MilitaryUnitController {
+	public:
+		bool control();
 };
 
 class DummyPlatoonController : public PlatoonController {
 	public:
 		DummyPlatoonController(Platoon* p);
 		bool control();
+		void receiveMessage(const Message& m);
 	private:
 		bool mAsleep;
 };
 
-class Platoon : public Entity {
+class Platoon : public MilitaryUnit {
 	public:
-		Platoon(const Vector2& pos, int side, int pid);
+		Platoon(const Vector2& pos, ServiceBranch b, int side, int pid);
 		const Vector2& getPosition() const;
+		void setPosition(const Vector2& v);
+		ServiceBranch getBranch() const;
 		int getSide() const;
 		int getPlatoonID() const;
-		bool update();
+		std::list<Platoon*> update();
 		void receiveMessage(const Message& m);
 	private:
 		Vector2 mPosition;
-		int mSide;
 		int mPid;
 		std::unique_ptr<PlatoonController> mController;
 };
 
-class Army {
+class Company : public MilitaryUnit {
 	public:
-		Army(const Terrain& t, const Vector2& base, int side);
-		std::vector<const Platoon*> getPlatoons() const;
-		std::vector<Platoon*> getPlatoons();
-		void addPlatoon();
+		Company(const Vector2& pos, ServiceBranch b, int side);
+};
+
+class Battalion : public MilitaryUnit {
+	public:
+		Battalion(const Vector2& pos, ServiceBranch b, int side);
+};
+
+class Brigade : public MilitaryUnit {
+	public:
+		Brigade(const Vector2& pos, ServiceBranch b, int side, const std::vector<ServiceBranch>& config);
+};
+
+class Army : public MilitaryUnit {
+	public:
+		Army(const Terrain& t, const Vector2& base, int side,
+				const std::vector<ServiceBranch>& armyConfiguration);
+		static int getNextPid();
 	private:
 		const Terrain& mTerrain;
 		Vector2 mBase;
-		std::vector<std::unique_ptr<Platoon>> mPlatoons;
-		int mSide;
 		static int nextPid;
-		static int getNextPid();
 };
 
 class PapayaEventListener {

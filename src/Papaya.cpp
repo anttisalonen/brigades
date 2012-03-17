@@ -7,8 +7,14 @@
 static const float maximum_tank_vegetation = 0.2f;
 int Army::nextPid = 0;
 
+PlatoonController::PlatoonController(Platoon* p)
+	: mPlatoon(p)
+{
+}
+
 DummyPlatoonController::DummyPlatoonController(Platoon* p)
-	: mAsleep(false)
+	: PlatoonController(p),
+	mAsleep(false)
 {
 }
 
@@ -22,18 +28,26 @@ bool DummyPlatoonController::control()
 	return ret;
 }
 
-Platoon::Platoon(const Vector2& pos, int side, int pid)
-	: mPosition(pos),
-	mSide(side),
+Platoon::Platoon(const Vector2& pos, ServiceBranch b, int side, int pid)
+	: MilitaryUnit(b, side),
+	mPosition(pos),
 	mPid(pid),
 	mController(nullptr)
 {
 	mController = std::unique_ptr<PlatoonController>(new DummyPlatoonController(this));
 }
 
-bool Platoon::update()
+ServiceBranch Platoon::getBranch() const
 {
-	return mController->control();
+	return mBranch;
+}
+
+std::list<Platoon*> Platoon::update()
+{
+	if(mController->control())
+		return std::list<Platoon*>(1, this);
+	else
+		return std::list<Platoon*>();
 }
 
 int Platoon::getSide() const
@@ -51,36 +65,97 @@ const Vector2& Platoon::getPosition() const
 	return mPosition;
 }
 
-void Platoon::receiveMessage(const Message& m)
+void Platoon::setPosition(const Vector2& v)
 {
+	mPosition = v;
 }
 
-Army::Army(const Terrain& t, const Vector2& base, int side)
-	: mTerrain(t),
-	mBase(base),
+void Platoon::receiveMessage(const Message& m)
+{
+	mController->receiveMessage(m);
+}
+
+void DummyPlatoonController::receiveMessage(const Message& m)
+{
+	switch(m.mType) {
+		case MessageType::ClaimArea:
+			{
+				Vector2 v((m.mData->Area.x2 + m.mData->Area.x1) / 2.0f,
+						(m.mData->Area.y2 + m.mData->Area.y1) / 2.0f);
+				mPlatoon->setPosition(v);
+			}
+			break;
+	}
+}
+
+MilitaryUnit::MilitaryUnit(ServiceBranch b, int side)
+	: mBranch(b),
 	mSide(side)
 {
 }
 
-std::vector<const Platoon*> Army::getPlatoons() const
+void MilitaryUnit::receiveMessage(const Message& m)
 {
-	return getPlatoons();
+	return;
 }
 
-std::vector<Platoon*> Army::getPlatoons()
+ServiceBranch MilitaryUnit::getBranch() const
 {
-	std::vector<Platoon*> ret;
-	for(auto& p : mPlatoons) {
-		ret.push_back(p.get());
+	return mBranch;
+}
+
+int MilitaryUnit::getSide() const
+{
+	return mSide;
+}
+
+std::list<Platoon*> MilitaryUnit::update()
+{
+	std::list<Platoon*> units;
+	for(auto& u : mUnits) {
+		units.splice(units.end(), u->update());
 	}
-	return ret;
+	return units;
 }
 
-void Army::addPlatoon()
+Company::Company(const Vector2& pos, ServiceBranch b, int side)
+	: MilitaryUnit(b, side)
 {
-	Vector2 pos(mBase);
-	pos.x += mPlatoons.size() * 0.5f;
-	mPlatoons.push_back(std::unique_ptr<Platoon>(new Platoon(pos, mSide, getNextPid())));
+	for(int i = 0; i < 4; i++) {
+		mUnits.push_back(std::unique_ptr<Platoon>(new Platoon(pos, mBranch, mSide, Army::getNextPid())));
+	}
+}
+
+Battalion::Battalion(const Vector2& pos, ServiceBranch b, int side)
+	: MilitaryUnit(b, side)
+{
+	for(int i = 0; i < 4; i++) {
+		mUnits.push_back(std::unique_ptr<Company>(new Company(pos, mBranch, mSide)));
+	}
+}
+
+Brigade::Brigade(const Vector2& pos, ServiceBranch b, int side, const std::vector<ServiceBranch>& config)
+	: MilitaryUnit(b, side)
+{
+	for(auto& br : config) {
+		mUnits.push_back(std::unique_ptr<Battalion>(new Battalion(pos, br, mSide)));
+	}
+}
+
+Army::Army(const Terrain& t, const Vector2& base, int side,
+		const std::vector<ServiceBranch>& armyConfiguration)
+	: MilitaryUnit(ServiceBranch::Infantry, side),
+	mTerrain(t),
+	mBase(base)
+{
+	mUnits.push_back(std::unique_ptr<Brigade>(new Brigade(mBase, ServiceBranch::Infantry, mSide, armyConfiguration)));
+	MessageDispatcher::instance().dispatchMessage(Message(mEntityID, mUnits[0]->getEntityID(),
+				0.0f, 0.0f, MessageType::ClaimArea, MessageData(Area2(0, mTerrain.getWidth(), 0, mTerrain.getWidth()))));
+}
+
+EntityID Entity::getEntityID() const
+{
+	return mEntityID;
 }
 
 int Army::getNextPid()
@@ -120,23 +195,26 @@ Papaya::Papaya(const Terrain& t)
 	if(!basefound) {
 		throw std::runtime_error("Could not find a suitable base position for team 2 - too much vegetation.\n");
 	}
-	mArmies.push_back(std::unique_ptr<Army>(new Army(mTerrain, base1, 1)));
-	mArmies.push_back(std::unique_ptr<Army>(new Army(mTerrain, base2, 2)));
-	for(auto& a : mArmies) {
-		for(int i = 0; i < 4; i++) {
-			a->addPlatoon();
-		}
-	}
+	std::vector<ServiceBranch> armyConfiguration;
+	armyConfiguration.push_back(ServiceBranch::Infantry);
+	armyConfiguration.push_back(ServiceBranch::Infantry);
+	armyConfiguration.push_back(ServiceBranch::Armored);
+	armyConfiguration.push_back(ServiceBranch::Artillery);
+	armyConfiguration.push_back(ServiceBranch::Engineer);
+	armyConfiguration.push_back(ServiceBranch::Recon);
+	armyConfiguration.push_back(ServiceBranch::Signal);
+	armyConfiguration.push_back(ServiceBranch::Supply);
+	mArmies.push_back(std::unique_ptr<Army>(new Army(mTerrain, base1, 1, armyConfiguration)));
+	mArmies.push_back(std::unique_ptr<Army>(new Army(mTerrain, base2, 2, armyConfiguration)));
 }
 
 void Papaya::process(float dt)
 {
 	for(auto& a : mArmies) {
-		for(auto& p : a->getPlatoons()) {
-			if(p->update()) {
-				for(auto& l : mListeners) {
-					l->PlatoonStatusChanged(p);
-				}
+		auto pl = a->update();
+		for(auto p : pl) {
+			for(auto l : mListeners) {
+				l->PlatoonStatusChanged(p);
 			}
 		}
 	}
@@ -159,4 +237,26 @@ void Papaya::removeEventListener(PapayaEventListener* l)
 {
 	mListeners.erase(std::remove(mListeners.begin(), mListeners.end(), l), mListeners.end());
 }
+
+const char* BranchToName(ServiceBranch b)
+{
+	switch(b) {
+		case ServiceBranch::Infantry:
+			return "Infantry";
+		case ServiceBranch::Armored:
+			return "Armored";
+		case ServiceBranch::Artillery:
+			return "Artillery";
+		case ServiceBranch::Engineer:
+			return "Engineer";
+		case ServiceBranch::Recon:
+			return "Recon";
+		case ServiceBranch::Signal:
+			return "Signal";
+		case ServiceBranch::Supply:
+			return "Supply";
+	}
+	return "";
+}
+
 

@@ -281,11 +281,10 @@ void App::PlatoonStatusChanged(const Platoon* p)
 	Ogre::SceneNode* unitNode;
 	if(it == mPlatoonEntities.end()) {
 		const std::string unitsize("Platoon");
-		const std::string unittype("Infantry");
+		const std::string unittype(BranchToName(p->getBranch()));
 		std::ostringstream ss;
 		std::ostringstream materialstr;
 		ss << unitsize << p->getPlatoonID();
-		std::cerr << "Creating entity " << ss.str() << "\n";
 		Ogre::Entity* unitEnt = mScene->createEntity(ss.str(), "UnitMesh");
 		materialstr << unittype << unitsize << p->getSide();
 		std::string materialname = materialstr.str();
