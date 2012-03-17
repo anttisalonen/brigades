@@ -7,21 +7,33 @@
 static const float maximum_tank_vegetation = 0.2f;
 int Army::nextPid = 0;
 
+DummyPlatoonController::DummyPlatoonController(Platoon* p)
+	: mAsleep(false)
+{
+}
+
+bool DummyPlatoonController::control()
+{
+	bool ret = false;
+	if(!mAsleep) {
+		mAsleep = true;
+		ret = true;
+	}
+	return ret;
+}
+
 Platoon::Platoon(const Vector2& pos, int side, int pid)
 	: mPosition(pos),
 	mSide(side),
 	mPid(pid),
-	mAsleep(false)
+	mController(nullptr)
 {
+	mController = std::unique_ptr<PlatoonController>(new DummyPlatoonController(this));
 }
 
-void Platoon::update()
+bool Platoon::update()
 {
-}
-
-bool Platoon::asleep() const
-{
-	return mAsleep;
+	return mController->control();
 }
 
 int Platoon::getSide() const
@@ -37,6 +49,10 @@ int Platoon::getPlatoonID() const
 const Vector2& Platoon::getPosition() const
 {
 	return mPosition;
+}
+
+void Platoon::receiveMessage(const Message& m)
+{
 }
 
 Army::Army(const Terrain& t, const Vector2& base, int side)
@@ -117,8 +133,7 @@ void Papaya::process(float dt)
 {
 	for(auto& a : mArmies) {
 		for(auto& p : a->getPlatoons()) {
-			p->update();
-			if(!p->asleep()) {
+			if(p->update()) {
 				for(auto& l : mListeners) {
 					l->PlatoonStatusChanged(p);
 				}

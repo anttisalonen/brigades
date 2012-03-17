@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "Terrain.h"
+#include "Messaging.h"
 
 struct Vector2 {
 	float x;
@@ -13,19 +14,34 @@ struct Vector2 {
 	Vector2(float x_, float y_) : x(x_), y(y_) { }
 };
 
-class Platoon {
+class Platoon;
+
+class PlatoonController {
+	public:
+		virtual bool control() = 0;
+};
+
+class DummyPlatoonController : public PlatoonController {
+	public:
+		DummyPlatoonController(Platoon* p);
+		bool control();
+	private:
+		bool mAsleep;
+};
+
+class Platoon : public Entity {
 	public:
 		Platoon(const Vector2& pos, int side, int pid);
 		const Vector2& getPosition() const;
 		int getSide() const;
 		int getPlatoonID() const;
-		void update();
-		bool asleep() const;
+		bool update();
+		void receiveMessage(const Message& m);
 	private:
 		Vector2 mPosition;
 		int mSide;
 		int mPid;
-		bool mAsleep;
+		std::unique_ptr<PlatoonController> mController;
 };
 
 class Army {
