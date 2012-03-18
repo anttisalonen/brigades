@@ -64,15 +64,15 @@ Terrain::Terrain()
 {
 }
 
-float Terrain::getHeightAt(float x, float y) const
+float Terrain::getHeightAt(const Vector2& v) const
 {
-	float value = mPerlin.GetValue(x * mHeightPlaneScale, y * mHeightPlaneScale, 0.0);
+	float value = mPerlin.GetValue(v.x * mHeightPlaneScale, v.y * mHeightPlaneScale, 0.0);
 	return clamp(0.0f, (value * 0.6f + 1.0f) / 2.0f, 1.0f);
 }
 
-float Terrain::getVegetationAt(float x, float y) const
+float Terrain::getVegetationAt(const Vector2& v) const
 {
-	float value = mPerlin.GetValue(x * mVegetationScale, y * mVegetationScale, 1.0);
+	float value = mPerlin.GetValue(v.x * mVegetationScale, v.y * mVegetationScale, 1.0);
 	return clamp(0.0f, (value * 0.8f + 1.0f) / 2.0f, 1.0f);
 }
 

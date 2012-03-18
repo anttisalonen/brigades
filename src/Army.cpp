@@ -1,5 +1,6 @@
 #include <iostream>
 #include "Army.h"
+#include "Papaya.h"
 
 int Army::nextPid = 0;
 
@@ -15,7 +16,7 @@ DummyPlatoonController::DummyPlatoonController(Platoon* p)
 {
 }
 
-bool DummyPlatoonController::control()
+bool DummyPlatoonController::control(float dt)
 {
 	bool ret = false;
 	if(!mAsleep) {
@@ -26,7 +27,7 @@ bool DummyPlatoonController::control()
 		Vector2 diffvec = mTargetPos - mPlatoon->getPosition();
 		if(diffvec.length() > 0.5) {
 			Vector2 velvec = diffvec.normalized();
-			velvec *= 0.1f;
+			velvec *= 0.1f * dt * Papaya::Instance().getPlatoonSpeed(*mPlatoon);
 			velvec += mPlatoon->getPosition();
 			mPlatoon->setPosition(velvec);
 			ret = true;
@@ -49,9 +50,9 @@ ServiceBranch Platoon::getBranch() const
 	return mBranch;
 }
 
-std::list<Platoon*> Platoon::update()
+std::list<Platoon*> Platoon::update(float dt)
 {
-	if(mController->control())
+	if(mController->control(dt))
 		return std::list<Platoon*>(1, this);
 	else
 		return std::list<Platoon*>();
@@ -89,7 +90,6 @@ void DummyPlatoonController::receiveMessage(const Message& m)
 			{
 				Vector2 v((m.mData->Area.x2 + m.mData->Area.x1) / 2.0f,
 						(m.mData->Area.y2 + m.mData->Area.y1) / 2.0f);
-				std::cout << "I must go to " << v << ".\n";
 				mTargetPos = v;
 			}
 			break;
@@ -152,11 +152,11 @@ int MilitaryUnit::getSide() const
 	return mSide;
 }
 
-std::list<Platoon*> MilitaryUnit::update()
+std::list<Platoon*> MilitaryUnit::update(float dt)
 {
 	std::list<Platoon*> units;
 	for(auto& u : mUnits) {
-		units.splice(units.end(), u->update());
+		units.splice(units.end(), u->update(dt));
 	}
 	return units;
 }
@@ -206,7 +206,7 @@ int Army::getNextPid()
 	return ++nextPid;
 }
 
-const char* BranchToName(ServiceBranch b)
+const char* branchToName(ServiceBranch b)
 {
 	switch(b) {
 		case ServiceBranch::Infantry:
@@ -238,3 +238,16 @@ bool isCombatBranch(ServiceBranch b)
 	}
 	return false;
 }
+
+bool branchOnFoot(ServiceBranch b)
+{
+	switch(b) {
+		case ServiceBranch::Infantry:
+		case ServiceBranch::Recon:
+			return true;
+		default:
+			return false;
+	}
+	return false;
+}
+

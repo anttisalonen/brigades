@@ -11,10 +11,20 @@ class Platoon;
 class PlatoonController {
 	public:
 		PlatoonController(Platoon* p);
-		virtual bool control() = 0;
+		virtual bool control(float dt) = 0;
 		virtual void receiveMessage(const Message& m) = 0;
 	protected:
 		Platoon* mPlatoon;
+};
+
+class DummyPlatoonController : public PlatoonController {
+	public:
+		DummyPlatoonController(Platoon* p);
+		bool control(float dt);
+		void receiveMessage(const Message& m);
+	private:
+		bool mAsleep;
+		Vector2 mTargetPos;
 };
 
 enum class ServiceBranch {
@@ -27,15 +37,12 @@ enum class ServiceBranch {
 	Supply
 };
 
-const char* BranchToName(ServiceBranch b);
-bool isCombatBranch(ServiceBranch b);
-
 class MilitaryUnit : public Entity {
 	public:
 		MilitaryUnit(ServiceBranch b, int side);
 		ServiceBranch getBranch() const;
 		int getSide() const;
-		virtual std::list<Platoon*> update();
+		virtual std::list<Platoon*> update(float dt);
 		virtual void receiveMessage(const Message& m);
 	protected:
 		ServiceBranch mBranch;
@@ -57,16 +64,6 @@ class SimpleMilitaryUnitController : public MilitaryUnitController {
 		bool control();
 };
 
-class DummyPlatoonController : public PlatoonController {
-	public:
-		DummyPlatoonController(Platoon* p);
-		bool control();
-		void receiveMessage(const Message& m);
-	private:
-		bool mAsleep;
-		Vector2 mTargetPos;
-};
-
 class Platoon : public MilitaryUnit {
 	public:
 		Platoon(const Vector2& pos, ServiceBranch b, int side, int pid);
@@ -75,7 +72,7 @@ class Platoon : public MilitaryUnit {
 		ServiceBranch getBranch() const;
 		int getSide() const;
 		int getPlatoonID() const;
-		std::list<Platoon*> update();
+		std::list<Platoon*> update(float dt);
 		void receiveMessage(const Message& m);
 	private:
 		Vector2 mPosition;
@@ -108,6 +105,10 @@ class Army : public MilitaryUnit {
 		Vector2 mBase;
 		static int nextPid;
 };
+
+const char* branchToName(ServiceBranch b);
+bool isCombatBranch(ServiceBranch b);
+bool branchOnFoot(ServiceBranch b);
 
 #endif
 

@@ -6,16 +6,20 @@
 
 static const float maximum_tank_vegetation = 0.2f;
 
-Papaya::Papaya(const Terrain& t)
-	: mTerrain(t)
+Papaya::Papaya()
 {
+}
+
+void Papaya::setup(const Terrain* t)
+{
+	mTerrain = t;
 	float xp1 = 1.0f;
 	float yp1 = 1.0f;
 	Vector2 base1, base2;
 	bool basefound = false;
-	for(xp1 = 1.0f; xp1 < mTerrain.getWidth() * 0.25f; xp1 += 1.0f) {
-		for(yp1 = 1.0f; yp1 < mTerrain.getWidth() * 0.25f; yp1 += 1.0f) {
-			if(mTerrain.getVegetationAt(xp1, yp1) < maximum_tank_vegetation) {
+	for(xp1 = 1.0f; xp1 < mTerrain->getWidth() * 0.25f; xp1 += 1.0f) {
+		for(yp1 = 1.0f; yp1 < mTerrain->getWidth() * 0.25f; yp1 += 1.0f) {
+			if(mTerrain->getVegetationAt(Vector2(xp1, yp1)) < maximum_tank_vegetation) {
 				base1 = Vector2(xp1, yp1);
 				basefound = true;
 				break;
@@ -26,9 +30,9 @@ Papaya::Papaya(const Terrain& t)
 		throw std::runtime_error("Could not find a suitable base position for team 1 - too much vegetation.\n");
 	}
 	basefound = false;
-	for(xp1 = t.getWidth() - 1.0f; xp1 > mTerrain.getWidth() * 0.75f; xp1 -= 1.0f) {
-		for(yp1 = t.getWidth() - 1.0f; yp1 > mTerrain.getWidth() * 0.75f; yp1 -= 1.0f) {
-			if(mTerrain.getVegetationAt(xp1, yp1) < maximum_tank_vegetation) {
+	for(xp1 = t->getWidth() - 1.0f; xp1 > mTerrain->getWidth() * 0.75f; xp1 -= 1.0f) {
+		for(yp1 = t->getWidth() - 1.0f; yp1 > mTerrain->getWidth() * 0.75f; yp1 -= 1.0f) {
+			if(mTerrain->getVegetationAt(Vector2(xp1, yp1)) < maximum_tank_vegetation) {
 				base2 = Vector2(xp1, yp1);
 				basefound = true;
 				break;
@@ -47,14 +51,14 @@ Papaya::Papaya(const Terrain& t)
 	armyConfiguration.push_back(ServiceBranch::Recon);
 	armyConfiguration.push_back(ServiceBranch::Signal);
 	armyConfiguration.push_back(ServiceBranch::Supply);
-	mArmies.push_back(std::unique_ptr<Army>(new Army(mTerrain, base1, 1, armyConfiguration)));
-	mArmies.push_back(std::unique_ptr<Army>(new Army(mTerrain, base2, 2, armyConfiguration)));
+	mArmies.push_back(std::unique_ptr<Army>(new Army(*mTerrain, base1, 1, armyConfiguration)));
+	mArmies.push_back(std::unique_ptr<Army>(new Army(*mTerrain, base2, 2, armyConfiguration)));
 }
 
 void Papaya::process(float dt)
 {
 	for(auto& a : mArmies) {
-		auto pl = a->update();
+		auto pl = a->update(dt);
 		for(auto p : pl) {
 			for(auto l : mListeners) {
 				l->PlatoonStatusChanged(p);
@@ -81,4 +85,23 @@ void Papaya::removeEventListener(PapayaEventListener* l)
 	mListeners.erase(std::remove(mListeners.begin(), mListeners.end(), l), mListeners.end());
 }
 
+static Papaya singletonPapaya;
+
+Papaya& Papaya::Instance()
+{
+	return singletonPapaya;
+}
+
+float Papaya::getPlatoonSpeed(const Platoon& p) const
+{
+	float base = 1.0f;
+	float terraincoeff = mTerrain->getVegetationAt(p.getPosition());
+	if(branchOnFoot(p.getBranch())) {
+		base *= 5.0f * (1.0f - terraincoeff);
+	}
+	else {
+		base *= 1.0f * (1.0f - (terraincoeff / 2.0f));
+	}
+	return base;
+}
 

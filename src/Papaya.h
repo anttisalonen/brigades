@@ -16,13 +16,16 @@ class PapayaEventListener {
 
 class Papaya {
 	public:
-		Papaya(const Terrain& t);
+		Papaya();
+		void setup(const Terrain* t);
 		void process(float dt);
 		const Army* getArmy(size_t side) const;
 		void addEventListener(PapayaEventListener* l);
 		void removeEventListener(PapayaEventListener* l);
+		static Papaya& Instance();
+		float getPlatoonSpeed(const Platoon& p) const;
 	private:
-		const Terrain& mTerrain;
+		const Terrain* mTerrain;
 		std::vector<std::unique_ptr<Army>> mArmies;
 		std::vector<PapayaEventListener*> mListeners;
 };

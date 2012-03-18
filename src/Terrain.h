@@ -31,8 +31,8 @@ struct Area2 {
 class Terrain {
 	public:
 		Terrain();
-		float getHeightAt(float x, float y) const;
-		float getVegetationAt(float x, float y) const;
+		float getHeightAt(const Vector2& v) const;
+		float getVegetationAt(const Vector2& v) const;
 		float getHeightScale() const;
 		float getWidth() const;
 	private:

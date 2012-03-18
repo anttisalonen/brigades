@@ -7,9 +7,9 @@ App::App()
 	: mUpVelocity(0),
 	mRightVelocity(0),
 	mForwardVelocity(0),
-	mMapRenderType(0),
-	mPapaya(mTerrain)
+	mMapRenderType(0)
 {
+	Papaya::Instance().setup(&mTerrain);
 	// get user data directory
 	char* homedir = getenv("HOME");
 	if(homedir) {
@@ -60,7 +60,7 @@ App::App()
 
 		createUnitMesh();
 		createTerrain();
-		mPapaya.addEventListener(this);
+		Papaya::Instance().addEventListener(this);
 
 		mRunning = true;
 	}
@@ -161,9 +161,9 @@ void App::createTerrainTextures()
 {
 	const char* texturenames[] = { "TerrainTexture", "HeightTexture", "VegetationTexture"};
 	createTexture(texturenames[0], mTerrain.getWidth(), mTerrain.getWidth(), [&](size_t i, size_t j) {
-			float tHeight = mTerrain.getHeightAt(i, j);
-			float tVeg = mTerrain.getVegetationAt(i, j);
-			float heightDiff = (tHeight - mTerrain.getHeightAt(i - 1, j)) * mTerrain.getHeightScale();
+			float tHeight = mTerrain.getHeightAt(Vector2(i, j));
+			float tVeg = mTerrain.getVegetationAt(Vector2(i, j));
+			float heightDiff = (tHeight - mTerrain.getHeightAt(Vector2(i - 1, j))) * mTerrain.getHeightScale();
 			float texLen = sqrt(heightDiff * heightDiff + 1);
 			float lightnessCoeff = 1.0f + heightDiff * 0.8f / texLen;
 			float r, g, b;
@@ -174,12 +174,12 @@ void App::createTerrainTextures()
 			});
 
 	createTexture(texturenames[1], mTerrain.getWidth(), mTerrain.getWidth(), [&](size_t i, size_t j) {
-                        float r = mTerrain.getHeightAt(i, j) * 255;
+                        float r = mTerrain.getHeightAt(Vector2(i, j)) * 255;
 			return std::tuple<Ogre::uint8, Ogre::uint8, Ogre::uint8>(r, r, r);
 			});
 
 	createTexture(texturenames[2], mTerrain.getWidth(), mTerrain.getWidth(), [&](size_t i, size_t j) {
-                        float r = mTerrain.getVegetationAt(i, j) * 255;
+                        float r = mTerrain.getVegetationAt(Vector2(i, j)) * 255;
 			return std::tuple<Ogre::uint8, Ogre::uint8, Ogre::uint8>(r * 0.2f, r, r * 0.2f);
 			});
 
@@ -210,7 +210,7 @@ void App::createTerrain()
 void App::run()
 {
 	while(mRunning && !mWindow->isClosed()) {
-		mPapaya.process(1.0f);
+		Papaya::Instance().process(1.0f);
 		mRoot->renderOneFrame();
 		Ogre::WindowEventUtilities::messagePump();
 		mKeyboard->capture();
@@ -281,7 +281,7 @@ void App::PlatoonStatusChanged(const Platoon* p)
 	Ogre::SceneNode* unitNode;
 	if(it == mPlatoonEntities.end()) {
 		const std::string unitsize("Platoon");
-		const std::string unittype(BranchToName(p->getBranch()));
+		const std::string unittype(branchToName(p->getBranch()));
 		std::ostringstream ss;
 		std::ostringstream materialstr;
 		ss << unitsize << p->getPlatoonID();

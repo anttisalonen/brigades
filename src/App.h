@@ -43,7 +43,6 @@ class App : public OIS::KeyListener, public PapayaEventListener {
 		float mRightVelocity;
 		float mForwardVelocity;
 		int mMapRenderType;
-		Papaya mPapaya;
 		std::map<int, Ogre::SceneNode*> mPlatoonEntities;
 		std::map<int, Ogre::ColourValue> mTeamColors;
 };
