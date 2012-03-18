@@ -30,6 +30,7 @@ class Message {
 
 class Entity {
 	public:
+		Entity();
 		virtual void receiveMessage(const Message& m) = 0;
 		EntityID getEntityID() const;
 	protected:

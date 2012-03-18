@@ -1,6 +1,7 @@
 #ifndef TERRAIN_H
 #define TERRAIN_H
 
+#include <iostream>
 #include <noise/noise.h>
 
 struct Vector2 {
@@ -8,7 +9,17 @@ struct Vector2 {
 	float y;
 	Vector2() : x(0), y(0) { }
 	Vector2(float x_, float y_) : x(x_), y(y_) { }
+	Vector2 operator+(const Vector2& v2);
+	Vector2 operator-(const Vector2& v2);
+	float length() const;
+	float length2() const;
+	void normalize();
+	Vector2 normalized() const;
+	void operator+=(const Vector2& v2);
+	void operator*=(float f);
 };
+
+std::ostream& operator<<(std::ostream& out, const Vector2& vec);
 
 struct Area2 {
 	float x1, y1, x2, y2;

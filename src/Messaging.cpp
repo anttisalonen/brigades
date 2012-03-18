@@ -12,6 +12,11 @@ Message::Message(EntityID sender, EntityID receiver, float creationTime, float d
 {
 }
 
+Entity::Entity()
+{
+	mEntityID = EntityManager::instance().registerEntity(this);
+}
+
 EntityManager::EntityManager()
 	: mNextEntityID(1)
 {

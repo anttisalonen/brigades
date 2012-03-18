@@ -20,7 +20,7 @@ BIN     = $(BINDIR)/$(BINNAME)
 
 SRCDIR = src
 
-SRCFILES = main.cpp App.cpp Terrain.cpp Papaya.cpp Messaging.cpp
+SRCFILES = Army.cpp Messaging.cpp Papaya.cpp Terrain.cpp App.cpp main.cpp
 
 SRCS = $(addprefix $(SRCDIR)/, $(SRCFILES))
 OBJS = $(SRCS:.cpp=.o)
