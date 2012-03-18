@@ -9,12 +9,12 @@ std::ostream& operator<<(std::ostream& out, const Vector2& vec)
 	return out;
 }
 
-Vector2 Vector2::operator+(const Vector2& v2)
+Vector2 Vector2::operator+(const Vector2& v2) const
 {
 	return Vector2(x + v2.x, y + v2.y);
 }
 
-Vector2 Vector2::operator-(const Vector2& v2)
+Vector2 Vector2::operator-(const Vector2& v2) const
 {
 	return Vector2(x - v2.x, y - v2.y);
 }

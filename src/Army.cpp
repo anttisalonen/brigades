@@ -4,45 +4,15 @@
 
 int Army::nextPid = 0;
 
-PlatoonController::PlatoonController(Platoon* p)
-	: mPlatoon(p)
-{
-}
-
-DummyPlatoonController::DummyPlatoonController(Platoon* p)
-	: PlatoonController(p),
-	mAsleep(false),
-	mTargetPos(p->getPosition())
-{
-}
-
-bool DummyPlatoonController::control(float dt)
-{
-	bool ret = false;
-	if(!mAsleep) {
-		mAsleep = true;
-		ret = true;
-	}
-	else {
-		Vector2 diffvec = mTargetPos - mPlatoon->getPosition();
-		if(diffvec.length() > 0.5) {
-			Vector2 velvec = diffvec.normalized();
-			velvec *= 0.1f * dt * Papaya::Instance().getPlatoonSpeed(*mPlatoon);
-			velvec += mPlatoon->getPosition();
-			mPlatoon->setPosition(velvec);
-			ret = true;
-		}
-	}
-	return ret;
-}
-
-Platoon::Platoon(const Vector2& pos, ServiceBranch b, int side, int pid)
+Platoon::Platoon(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch b, int side, int pid)
 	: MilitaryUnit(b, side),
+	mCommandingUnit(commandingunit),
 	mPosition(pos),
 	mPid(pid),
-	mController(nullptr)
+	mController(nullptr),
+	mHealth(100.0f)
 {
-	mController = std::unique_ptr<PlatoonController>(new DummyPlatoonController(this));
+	mController = std::unique_ptr<PlatoonController>(new PlatoonAIController(this));
 }
 
 ServiceBranch Platoon::getBranch() const
@@ -52,10 +22,19 @@ ServiceBranch Platoon::getBranch() const
 
 std::list<Platoon*> Platoon::update(float dt)
 {
+	if(isDead()) {
+		return std::list<Platoon*>();
+	}
+	checkVisibility();
 	if(mController->control(dt))
 		return std::list<Platoon*>(1, this);
 	else
 		return std::list<Platoon*>();
+}
+
+std::list<Platoon*> Platoon::getPlatoons()
+{
+	return std::list<Platoon*>(1, this);
 }
 
 int Platoon::getSide() const
@@ -83,63 +62,145 @@ void Platoon::receiveMessage(const Message& m)
 	mController->receiveMessage(m);
 }
 
-void DummyPlatoonController::receiveMessage(const Message& m)
+void Platoon::setController(std::unique_ptr<PlatoonController> c)
 {
-	switch(m.mType) {
-		case MessageType::ClaimArea:
-			{
-				Vector2 v((m.mData->Area.x2 + m.mData->Area.x1) / 2.0f,
-						(m.mData->Area.y2 + m.mData->Area.y1) / 2.0f);
-				mTargetPos = v;
+	mController.swap(c);
+}
+
+void Platoon::checkVisibility()
+{
+	size_t enemyside = getSide() == 1 ? 1 : 0;
+	Army* enemyarmy = Papaya::instance().getArmy(enemyside);
+	if(enemyarmy) {
+		std::list<Platoon*> enemyplatoons = enemyarmy->getPlatoons();
+		for(auto ep : enemyplatoons) {
+			if(!ep->isDead()) {
+				if((getPosition() - ep->getPosition()).length() < 4.0f) {
+					MessageDispatcher::instance().dispatchMessage(Message(mEntityID, mEntityID,
+								0.0f, 0.0f, MessageType::EnemyDiscovered, ep));
+				}
 			}
-			break;
+		}
 	}
+	else {
+		std::cerr << "No enemy army found?\n";
+	}
+}
+
+void Platoon::moveTowards(const Vector2& v, float dt)
+{
+	Vector2 diffvec = v - getPosition();
+	Vector2 velvec = diffvec.normalized();
+	velvec *= 0.1f * dt * Papaya::instance().getPlatoonSpeed(*this);
+	velvec += getPosition();
+	setPosition(velvec);
+}
+
+const MilitaryUnit* Platoon::getCommandingUnit() const
+{
+	return mCommandingUnit;
+}
+
+MilitaryUnit* Platoon::getCommandingUnit()
+{
+	return mCommandingUnit;
+}
+
+void Platoon::loseHealth(float damage)
+{
+	bool wasdead = isDead();
+	mHealth -= damage;
+	if(!wasdead && isDead()) {
+		MessageDispatcher::instance().dispatchMessage(Message(mEntityID, WORLD_ENTITY_ID,
+					0.0f, 0.0f, MessageType::PlatoonDied, this));
+	}
+}
+
+bool Platoon::isDead() const
+{
+	return mHealth <= 0.0f;
+}
+
+float Platoon::getHealth() const
+{
+	return mHealth;
 }
 
 MilitaryUnit::MilitaryUnit(ServiceBranch b, int side)
 	: mBranch(b),
-	mSide(side)
+	mSide(side),
+	mController(nullptr)
+{
+	mController = std::unique_ptr<MilitaryUnitController>(new SimpleMilitaryUnitController(this));
+}
+
+MilitaryUnitController::MilitaryUnitController(MilitaryUnit* m)
+	: mUnit(m)
 {
 }
 
-void MilitaryUnit::receiveMessage(const Message& m)
+SimpleMilitaryUnitController::SimpleMilitaryUnitController(MilitaryUnit* m)
+	: MilitaryUnitController(m)
+{
+}
+
+const std::vector<std::unique_ptr<MilitaryUnit>>& MilitaryUnit::getUnits() const
+{
+	return mUnits;
+}
+
+bool SimpleMilitaryUnitController::control(float dt)
+{
+	return false;
+}
+
+void SimpleMilitaryUnitController::receiveMessage(const Message& m)
 {
 	switch(m.mType) {
 		case MessageType::ClaimArea:
 			{
 				std::vector<MilitaryUnit*> combatUnits;
-				for(auto& u : mUnits) {
+				for(auto& u : mUnit->getUnits()) {
 					if(isCombatBranch(u->getBranch()))
 						combatUnits.push_back(u.get());
 				}
 				if(combatUnits.size()) {
-					float awidth = m.mData->Area.x2 - m.mData->Area.x1;
-					float aheight = m.mData->Area.y2 - m.mData->Area.y1;
+					float awidth = m.mData->area.x2 - m.mData->area.x1;
+					float aheight = m.mData->area.y2 - m.mData->area.y1;
 					std::vector<Area2> areas;
 					if(awidth > aheight) {
 						for(size_t i = 0; i < combatUnits.size(); i++) {
-							areas.push_back(Area2(m.mData->Area.x1 + awidth * i / combatUnits.size(),
-										m.mData->Area.y1,
-										m.mData->Area.x1 + awidth * (i + 1) / combatUnits.size(),
-										m.mData->Area.y2));
+							areas.push_back(Area2(m.mData->area.x1 + awidth * i / combatUnits.size(),
+										m.mData->area.y1,
+										m.mData->area.x1 + awidth * (i + 1) / combatUnits.size(),
+										m.mData->area.y2));
 						}
 					}
 					else {
 						for(size_t i = 0; i < combatUnits.size(); i++) {
-							areas.push_back(Area2(m.mData->Area.x1,
-										m.mData->Area.y1 + aheight * i / combatUnits.size(),
-										m.mData->Area.x2,
-										m.mData->Area.y1 + aheight * (i + 1) / combatUnits.size()));
+							areas.push_back(Area2(m.mData->area.x1,
+										m.mData->area.y1 + aheight * i / combatUnits.size(),
+										m.mData->area.x2,
+										m.mData->area.y1 + aheight * (i + 1) / combatUnits.size()));
 						}
 					}
 					for(size_t i = 0; i < combatUnits.size(); i++) {
-						MessageDispatcher::instance().dispatchMessage(Message(mEntityID, combatUnits[i]->getEntityID(),
+						MessageDispatcher::instance().dispatchMessage(Message(mUnit->getEntityID(),
+									combatUnits[i]->getEntityID(),
 									0.0f, 0.0f, MessageType::ClaimArea, areas[i]));
 					}
 				}
 			}
 			break;
+		default:
+			std::cout << "Unhandled message " << int(m.mType) << " in SimpleMilitaryUnitController.\n";
+			break;
 	}
+}
+
+void MilitaryUnit::receiveMessage(const Message& m)
+{
+	mController->receiveMessage(m);
 }
 
 ServiceBranch MilitaryUnit::getBranch() const
@@ -150,6 +211,15 @@ ServiceBranch MilitaryUnit::getBranch() const
 int MilitaryUnit::getSide() const
 {
 	return mSide;
+}
+
+std::list<Platoon*> MilitaryUnit::getPlatoons()
+{
+	std::list<Platoon*> units;
+	for(auto& u : mUnits) {
+		units.splice(units.end(), u->getPlatoons());
+	}
+	return units;
 }
 
 std::list<Platoon*> MilitaryUnit::update(float dt)
@@ -165,7 +235,7 @@ Company::Company(const Vector2& pos, ServiceBranch b, int side)
 	: MilitaryUnit(b, side)
 {
 	for(int i = 0; i < 4; i++) {
-		mUnits.push_back(std::unique_ptr<Platoon>(new Platoon(pos, mBranch, mSide, Army::getNextPid())));
+		mUnits.push_back(std::unique_ptr<Platoon>(new Platoon(this, pos, mBranch, mSide, Army::getNextPid())));
 	}
 }
 

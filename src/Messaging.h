@@ -3,17 +3,28 @@
 
 #include <map>
 #include <memory>
+#include <vector>
 #include "Terrain.h"
 
 enum class MessageType {
 	ClaimArea,
+	EnemyDiscovered,
+	ReachedPosition,
+	PlatoonDied,
 };
 
 typedef int EntityID;
 
+const EntityID WORLD_ENTITY_ID = 1;
+
+class Platoon;
+
 union MessageData {
-	MessageData(const Area2& a) : Area(a) { }
-	Area2 Area;
+	MessageData(const Area2& a) : area(a) { }
+	MessageData(Platoon* p) : platoon(p) { }
+	MessageData() { }
+	Area2 area;
+	Platoon* platoon;
 };
 
 class Message {
@@ -26,6 +37,11 @@ class Message {
 		const float mSendTime;
 		MessageType mType;
 		std::unique_ptr<MessageData> mData;
+};
+
+class WorldEntity {
+	public:
+		virtual void receiveMessage(const Message& m) = 0;
 };
 
 class Entity {
@@ -53,6 +69,9 @@ class MessageDispatcher {
 		MessageDispatcher();
 		static MessageDispatcher& instance();
 		void dispatchMessage(const Message& m);
+		void registerWorldEntity(WorldEntity* e);
+	private:
+		std::vector<WorldEntity*> mWorldEntities;
 };
 
 #endif

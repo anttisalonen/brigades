@@ -9,8 +9,8 @@ struct Vector2 {
 	float y;
 	Vector2() : x(0), y(0) { }
 	Vector2(float x_, float y_) : x(x_), y(y_) { }
-	Vector2 operator+(const Vector2& v2);
-	Vector2 operator-(const Vector2& v2);
+	Vector2 operator+(const Vector2& v2) const;
+	Vector2 operator-(const Vector2& v2) const;
 	float length() const;
 	float length2() const;
 	void normalize();

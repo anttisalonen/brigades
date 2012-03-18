@@ -20,9 +20,10 @@ class Papaya {
 		void setup(const Terrain* t);
 		void process(float dt);
 		const Army* getArmy(size_t side) const;
+		Army* getArmy(size_t side);
 		void addEventListener(PapayaEventListener* l);
 		void removeEventListener(PapayaEventListener* l);
-		static Papaya& Instance();
+		static Papaya& instance();
 		float getPlatoonSpeed(const Platoon& p) const;
 	private:
 		const Terrain* mTerrain;

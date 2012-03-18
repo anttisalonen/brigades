@@ -9,8 +9,9 @@
 
 #include "Terrain.h"
 #include "Papaya.h"
+#include "Messaging.h"
 
-class App : public OIS::KeyListener, public PapayaEventListener {
+class App : public OIS::KeyListener, public PapayaEventListener, public WorldEntity {
 	public:
 		App();
 		~App();
@@ -18,6 +19,7 @@ class App : public OIS::KeyListener, public PapayaEventListener {
 		bool keyPressed(const OIS::KeyEvent &arg);
 		bool keyReleased(const OIS::KeyEvent &arg);
 		void PlatoonStatusChanged(const Platoon* p);
+		void receiveMessage(const Message& m);
 	private:
 		void initResources();
 		void initInput();

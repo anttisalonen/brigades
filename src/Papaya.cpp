@@ -69,6 +69,11 @@ void Papaya::process(float dt)
 
 const Army* Papaya::getArmy(size_t side) const
 {
+	return getArmy(side);
+}
+
+Army* Papaya::getArmy(size_t side)
+{
 	if(side >= mArmies.size())
 		return nullptr;
 	else
@@ -87,7 +92,7 @@ void Papaya::removeEventListener(PapayaEventListener* l)
 
 static Papaya singletonPapaya;
 
-Papaya& Papaya::Instance()
+Papaya& Papaya::instance()
 {
 	return singletonPapaya;
 }

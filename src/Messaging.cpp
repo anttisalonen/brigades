@@ -18,7 +18,7 @@ Entity::Entity()
 }
 
 EntityManager::EntityManager()
-	: mNextEntityID(1)
+	: mNextEntityID(1000)
 {
 }
 
@@ -55,14 +55,26 @@ MessageDispatcher& MessageDispatcher::instance()
 	return singletonMessageDispatcher;
 }
 
+void MessageDispatcher::registerWorldEntity(WorldEntity* e)
+{
+	mWorldEntities.push_back(e);
+}
+
 void MessageDispatcher::dispatchMessage(const Message& m)
 {
-	Entity* e = EntityManager::instance().getEntity(m.mReceiver);
-	if(e) {
-		e->receiveMessage(m);
+	if(m.mReceiver == WORLD_ENTITY_ID) {
+		for(auto l : mWorldEntities) {
+			l->receiveMessage(m);
+		}
 	}
 	else {
-		std::cerr << "Message to " << m.mReceiver << " could not be delivered.\n";
+		Entity* e = EntityManager::instance().getEntity(m.mReceiver);
+		if(e) {
+			e->receiveMessage(m);
+		}
+		else {
+			std::cerr << "Message to " << m.mReceiver << " could not be delivered.\n";
+		}
 	}
 }
 

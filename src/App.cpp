@@ -9,7 +9,7 @@ App::App()
 	mForwardVelocity(0),
 	mMapRenderType(0)
 {
-	Papaya::Instance().setup(&mTerrain);
+	Papaya::instance().setup(&mTerrain);
 	// get user data directory
 	char* homedir = getenv("HOME");
 	if(homedir) {
@@ -60,7 +60,8 @@ App::App()
 
 		createUnitMesh();
 		createTerrain();
-		Papaya::Instance().addEventListener(this);
+		Papaya::instance().addEventListener(this);
+		MessageDispatcher::instance().registerWorldEntity(this);
 
 		mRunning = true;
 	}
@@ -210,7 +211,7 @@ void App::createTerrain()
 void App::run()
 {
 	while(mRunning && !mWindow->isClosed()) {
-		Papaya::Instance().process(1.0f);
+		Papaya::instance().process(1.0f);
 		mRoot->renderOneFrame();
 		Ogre::WindowEventUtilities::messagePump();
 		mKeyboard->capture();
@@ -275,6 +276,18 @@ bool App::keyReleased(const OIS::KeyEvent &arg)
 	return true;
 }
 
+void App::receiveMessage(const Message& m)
+{
+	switch(m.mType) {
+		case MessageType::PlatoonDied:
+			PlatoonStatusChanged(m.mData->platoon);
+			break;
+		default:
+			std::cout << "Unhandled message " << int(m.mType) << " in App.\n";
+			break;
+	}
+}
+
 void App::PlatoonStatusChanged(const Platoon* p)
 {
 	const auto& it = mPlatoonEntities.find(p->getPlatoonID());
@@ -314,6 +327,11 @@ void App::PlatoonStatusChanged(const Platoon* p)
 	else {
 		unitNode = it->second;
 	}
-	unitNode->setPosition(p->getPosition().x, p->getPosition().y, 0.1);
+	if(!p->isDead()) {
+		unitNode->setPosition(p->getPosition().x, p->getPosition().y, 0.1);
+	}
+	else {
+		unitNode->setVisible(false);
+	}
 }
 

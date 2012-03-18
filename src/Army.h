@@ -5,27 +5,9 @@
 #include <vector>
 
 #include "Messaging.h"
+#include "PlatoonAI.h"
 
 class Platoon;
-
-class PlatoonController {
-	public:
-		PlatoonController(Platoon* p);
-		virtual bool control(float dt) = 0;
-		virtual void receiveMessage(const Message& m) = 0;
-	protected:
-		Platoon* mPlatoon;
-};
-
-class DummyPlatoonController : public PlatoonController {
-	public:
-		DummyPlatoonController(Platoon* p);
-		bool control(float dt);
-		void receiveMessage(const Message& m);
-	private:
-		bool mAsleep;
-		Vector2 mTargetPos;
-};
 
 enum class ServiceBranch {
 	Infantry,
@@ -37,6 +19,24 @@ enum class ServiceBranch {
 	Supply
 };
 
+class MilitaryUnit;
+
+class MilitaryUnitController {
+	public:
+		MilitaryUnitController(MilitaryUnit* m);
+		virtual bool control(float dt) = 0;
+		virtual void receiveMessage(const Message& m) = 0;
+	protected:
+		MilitaryUnit* mUnit;
+};
+
+class SimpleMilitaryUnitController : public MilitaryUnitController {
+	public:
+		SimpleMilitaryUnitController(MilitaryUnit* m);
+		virtual void receiveMessage(const Message& m);
+		virtual bool control(float dt);
+};
+
 class MilitaryUnit : public Entity {
 	public:
 		MilitaryUnit(ServiceBranch b, int side);
@@ -44,29 +44,19 @@ class MilitaryUnit : public Entity {
 		int getSide() const;
 		virtual std::list<Platoon*> update(float dt);
 		virtual void receiveMessage(const Message& m);
+		virtual std::list<Platoon*> getPlatoons();
+		const std::vector<std::unique_ptr<MilitaryUnit>>& getUnits() const;
 	protected:
 		ServiceBranch mBranch;
 		int mSide;
 		std::vector<std::unique_ptr<MilitaryUnit>> mUnits;
-};
-
-class MilitaryUnitController {
-	public:
-		MilitaryUnitController(MilitaryUnit* m);
-		virtual bool control() = 0;
-		virtual void receiveMessage(const Message& m);
-	protected:
-		MilitaryUnit* m;
-};
-
-class SimpleMilitaryUnitController : public MilitaryUnitController {
-	public:
-		bool control();
+		std::unique_ptr<MilitaryUnitController> mController;
 };
 
 class Platoon : public MilitaryUnit {
 	public:
-		Platoon(const Vector2& pos, ServiceBranch b, int side, int pid);
+		Platoon(MilitaryUnit* commandingunit, const Vector2& pos,
+				ServiceBranch b, int side, int pid);
 		const Vector2& getPosition() const;
 		void setPosition(const Vector2& v);
 		ServiceBranch getBranch() const;
@@ -74,10 +64,21 @@ class Platoon : public MilitaryUnit {
 		int getPlatoonID() const;
 		std::list<Platoon*> update(float dt);
 		void receiveMessage(const Message& m);
+		std::list<Platoon*> getPlatoons();
+		void setController(std::unique_ptr<PlatoonController> c);
+		const MilitaryUnit* getCommandingUnit() const;
+		MilitaryUnit* getCommandingUnit();
+		void loseHealth(float damage);
+		bool isDead() const;
+		float getHealth() const;
+		void moveTowards(const Vector2& v, float dt);
 	private:
+		void checkVisibility();
+		MilitaryUnit* mCommandingUnit;
 		Vector2 mPosition;
 		int mPid;
 		std::unique_ptr<PlatoonController> mController;
+		float mHealth;
 };
 
 class Company : public MilitaryUnit {
