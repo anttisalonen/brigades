@@ -1,3 +1,8 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include <assert.h>
+
 #include <iostream>
 #include <exception>
 
@@ -7,7 +12,9 @@ App::App()
 	: mUpVelocity(0),
 	mRightVelocity(0),
 	mForwardVelocity(0),
-	mMapRenderType(0)
+	mMapRenderType(0),
+	mUnitScale(UnitSize::Platoon),
+	mUnitScaleChanged(true)
 {
 	Papaya::instance().setup(&mTerrain);
 	// get user data directory
@@ -212,10 +219,31 @@ void App::run()
 {
 	while(mRunning && !mWindow->isClosed()) {
 		Papaya::instance().process(1.0f);
+		setupUnitDisplay();
 		mRoot->renderOneFrame();
 		Ogre::WindowEventUtilities::messagePump();
 		mKeyboard->capture();
 		mCamNode->translate(mRightVelocity, mUpVelocity, mForwardVelocity);
+	}
+}
+
+void App::setupUnitDisplay()
+{
+	if(!mUnitScaleChanged)
+		return;
+
+	mUnitScaleChanged = false;
+	for(auto& it : mPlatoonEntities) {
+		it.second.mNode->setVisible(mUnitScale == UnitSize::Platoon);
+	}
+	for(auto& it : mCompanyEntities) {
+		it.second.mNode->setVisible(mUnitScale == UnitSize::Company);
+	}
+	for(auto& it : mBattalionEntities) {
+		it.second.mNode->setVisible(mUnitScale == UnitSize::Battalion);
+	}
+	for(auto& it : mBrigadeEntities) {
+		it.second.mNode->setVisible(mUnitScale == UnitSize::Brigade);
 	}
 }
 
@@ -248,6 +276,25 @@ bool App::keyPressed(const OIS::KeyEvent &arg)
 			if(mMapRenderType > 2)
 				mMapRenderType = 0;
 			updateTerrain();
+			break;
+		case OIS::KC_1:
+		case OIS::KC_2:
+		case OIS::KC_3:
+			mUnitScale = UnitSize::Platoon;
+			mUnitScaleChanged = true;
+			break;
+		case OIS::KC_4:
+			mUnitScale = UnitSize::Company;
+			mUnitScaleChanged = true;
+			break;
+		case OIS::KC_5:
+			mUnitScale = UnitSize::Battalion;
+			mUnitScaleChanged = true;
+			break;
+		case OIS::KC_6:
+		case OIS::KC_7:
+			mUnitScale = UnitSize::Brigade;
+			mUnitScaleChanged = true;
 			break;
 		default:
 			break;
@@ -288,50 +335,129 @@ void App::receiveMessage(const Message& m)
 	}
 }
 
-void App::PlatoonStatusChanged(const Platoon* p)
+Ogre::Entity* App::createUnitNode(const MilitaryUnit& m)
 {
-	const auto& it = mPlatoonEntities.find(p->getPlatoonID());
-	Ogre::SceneNode* unitNode;
-	if(it == mPlatoonEntities.end()) {
-		const std::string unitsize("Platoon");
-		const std::string unittype(branchToName(p->getBranch()));
-		std::ostringstream ss;
-		std::ostringstream materialstr;
-		ss << unitsize << p->getPlatoonID();
-		Ogre::Entity* unitEnt = mScene->createEntity(ss.str(), "UnitMesh");
-		materialstr << unittype << unitsize << p->getSide();
-		std::string materialname = materialstr.str();
-		Ogre::MaterialPtr material = Ogre::MaterialManager::getSingleton().getByName(materialname,
+	const std::string unitsize(unitSizeToName(m.getUnitSize()));
+	const std::string unittype(branchToName(m.getBranch()));
+	std::ostringstream ss;
+	std::ostringstream materialstr;
+	ss << unitsize << m.getEntityID();
+	Ogre::Entity* unitEnt = mScene->createEntity(ss.str(), "UnitMesh");
+	materialstr << unittype << unitsize << m.getSide();
+	std::string materialname = materialstr.str();
+	Ogre::MaterialPtr material = Ogre::MaterialManager::getSingleton().getByName(materialname,
+			APP_RESOURCE_NAME);
+	if(material.isNull()) {
+		std::cerr << "Creating material " << materialname << "\n";
+		material = Ogre::MaterialManager::getSingleton().create(materialname,
 				APP_RESOURCE_NAME);
-		if(material.isNull()) {
-			std::cerr << "Creating material " << materialname << "\n";
-			material = Ogre::MaterialManager::getSingleton().create(materialname,
-					APP_RESOURCE_NAME);
-			material->setAmbient(mTeamColors[p->getSide()]);
-			material->getTechnique(0)->getPass(0)->setSceneBlending(Ogre::SBT_TRANSPARENT_ALPHA);
-			material->getTechnique(0)->getPass(0)->setDepthWriteEnabled(false);
-			std::string texturename1 = unittype + ".png";
-			std::string texturename2 = unitsize + ".png";
-			Ogre::TextureUnitState* t1 = material->getTechnique(0)->getPass(0)->createTextureUnitState(texturename1);
-			t1->setColourOperation(Ogre::LBO_MODULATE);
-			t1->setAlphaOperation(Ogre::LBX_MODULATE);
-			Ogre::TextureUnitState* t2 = material->getTechnique(0)->getPass(0)->createTextureUnitState(texturename2);
-			t2->setColourOperation(Ogre::LBO_MODULATE);
-			t2->setAlphaOperation(Ogre::LBX_ADD);
+		material->setAmbient(mTeamColors[m.getSide()]);
+		material->getTechnique(0)->getPass(0)->setSceneBlending(Ogre::SBT_TRANSPARENT_ALPHA);
+		material->getTechnique(0)->getPass(0)->setDepthWriteEnabled(false);
+		std::string texturename1 = unittype + ".png";
+		std::string texturename2 = unitsize + ".png";
+		Ogre::TextureUnitState* t1 = material->getTechnique(0)->getPass(0)->createTextureUnitState(texturename1);
+		t1->setColourOperation(Ogre::LBO_MODULATE);
+		t1->setAlphaOperation(Ogre::LBX_MODULATE);
+		Ogre::TextureUnitState* t2 = material->getTechnique(0)->getPass(0)->createTextureUnitState(texturename2);
+		t2->setColourOperation(Ogre::LBO_MODULATE);
+		t2->setAlphaOperation(Ogre::LBX_ADD);
+	}
+	unitEnt->setMaterialName(materialname);
+	return unitEnt;
+}
+
+void App::updateUnitPosition(const MilitaryUnit* m, Vector2 pos)
+{
+	const MilitaryUnit* lower = m;
+	const MilitaryUnit* comm;
+	while(1) {
+		comm = lower->getCommandingUnit();
+		if(!comm)
+			break;
+		std::map<const MilitaryUnit*, UnitDrawInfo>* unitmap = nullptr;
+		switch(comm->getUnitSize()) {
+			case UnitSize::Company:
+				unitmap = &mCompanyEntities;
+				break;
+			case UnitSize::Battalion:
+				unitmap = &mBattalionEntities;
+				break;
+			case UnitSize::Brigade:
+				unitmap = &mBrigadeEntities;
+				break;
+			default:
+				break;
 		}
-		unitEnt->setMaterialName(materialname);
-		unitNode = mRootNode->createChildSceneNode();
-		unitNode->attachObject(unitEnt);
-		mPlatoonEntities[p->getPlatoonID()] = unitNode;
-	}
-	else {
-		unitNode = it->second;
-	}
-	if(!p->isDead()) {
-		unitNode->setPosition(p->getPosition().x, p->getPosition().y, 0.1);
-	}
-	else {
-		unitNode->setVisible(false);
+		if(unitmap) {
+			auto commit = unitmap->find(comm);
+			if(commit == unitmap->end()) {
+				Ogre::SceneNode* newnode = mRootNode->createChildSceneNode();
+				newnode->attachObject(createUnitNode(*comm));
+				setUnitNodeScale(newnode, *comm);
+				commit = unitmap->insert(unitmap->begin(),
+						std::make_pair(comm, UnitDrawInfo(newnode)));
+			}
+			if(pos.x || pos.y) {
+				commit->second.mPositions[lower->getEntityID()] = pos;
+			}
+			else {
+				commit->second.mPositions.erase(lower->getEntityID());
+			}
+			pos = commit->second.getPosition();
+			lower = comm;
+			if(pos.x || pos.y) {
+				commit->second.mNode->setPosition(pos.x, pos.y, 0.1f);
+			}
+			else {
+				// All lower units are gone.
+				commit->second.mNode->setVisible(false);
+				unitmap->erase(commit);
+			}
+		}
+		else {
+			break;
+		}
 	}
 }
 
+void App::PlatoonStatusChanged(const Platoon* p)
+{
+	const auto& it = mPlatoonEntities.find(p);
+	Ogre::SceneNode* unitNode;
+	if(it == mPlatoonEntities.end()) {
+		unitNode = mRootNode->createChildSceneNode();
+		unitNode->attachObject(createUnitNode(*p));
+		setUnitNodeScale(unitNode, *p);
+		mPlatoonEntities.insert(std::make_pair(p, UnitDrawInfo(unitNode)));
+	}
+	else {
+		unitNode = it->second.mNode;
+	}
+	if(!p->isDead()) {
+		unitNode->setPosition(p->getPosition().x, p->getPosition().y, 0.1f);
+		updateUnitPosition(p, p->getPosition());
+	}
+	else {
+		unitNode->setVisible(false);
+		mRootNode->removeChild(unitNode);
+		mPlatoonEntities.erase(it);
+		updateUnitPosition(p, Vector2());
+	}
+}
+
+
+void App::setUnitNodeScale(Ogre::SceneNode* n, const MilitaryUnit& m)
+{
+	float scale = 1.0f;
+	switch(m.getUnitSize()) {
+		case UnitSize::Single: scale = 0.1f; break;
+		case UnitSize::Squad: scale = 0.5f; break;
+		case UnitSize::Platoon: scale = 1.0f; break;
+		case UnitSize::Company: scale = 2.0f; break;
+		case UnitSize::Battalion: scale = 4.0f; break;
+		case UnitSize::Brigade: scale = 8.0f; break;
+		case UnitSize::Division: scale = 16.0f; break;
+	}
+	n->setScale(scale, scale, 1.0f);
+}

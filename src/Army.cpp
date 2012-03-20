@@ -5,8 +5,7 @@
 int Army::nextPid = 0;
 
 Platoon::Platoon(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch b, int side, int pid)
-	: MilitaryUnit(b, side),
-	mCommandingUnit(commandingunit),
+	: MilitaryUnit(commandingunit, b, side),
 	mPosition(pos),
 	mPid(pid),
 	mController(nullptr),
@@ -87,6 +86,31 @@ void Platoon::checkVisibility()
 	}
 }
 
+UnitSize Platoon::getUnitSize() const
+{
+	return UnitSize::Platoon;
+}
+
+UnitSize Company::getUnitSize() const
+{
+	return UnitSize::Company;
+}
+
+UnitSize Battalion::getUnitSize() const
+{
+	return UnitSize::Battalion;
+}
+
+UnitSize Brigade::getUnitSize() const
+{
+	return UnitSize::Brigade;
+}
+
+UnitSize Army::getUnitSize() const
+{
+	return UnitSize::Division;
+}
+
 void Platoon::moveTowards(const Vector2& v, float dt)
 {
 	Vector2 diffvec = v - getPosition();
@@ -94,16 +118,6 @@ void Platoon::moveTowards(const Vector2& v, float dt)
 	velvec *= 0.1f * dt * Papaya::instance().getPlatoonSpeed(*this);
 	velvec += getPosition();
 	setPosition(velvec);
-}
-
-const MilitaryUnit* Platoon::getCommandingUnit() const
-{
-	return mCommandingUnit;
-}
-
-MilitaryUnit* Platoon::getCommandingUnit()
-{
-	return mCommandingUnit;
 }
 
 void Platoon::loseHealth(float damage)
@@ -126,12 +140,23 @@ float Platoon::getHealth() const
 	return mHealth;
 }
 
-MilitaryUnit::MilitaryUnit(ServiceBranch b, int side)
-	: mBranch(b),
+MilitaryUnit::MilitaryUnit(MilitaryUnit* commandingunit, ServiceBranch b, int side)
+	: mCommandingUnit(commandingunit),
+	mBranch(b),
 	mSide(side),
 	mController(nullptr)
 {
 	mController = std::unique_ptr<MilitaryUnitController>(new SimpleMilitaryUnitController(this));
+}
+
+const MilitaryUnit* MilitaryUnit::getCommandingUnit() const
+{
+	return mCommandingUnit;
+}
+
+MilitaryUnit* MilitaryUnit::getCommandingUnit()
+{
+	return mCommandingUnit;
 }
 
 MilitaryUnitController::MilitaryUnitController(MilitaryUnit* m)
@@ -231,37 +256,37 @@ std::list<Platoon*> MilitaryUnit::update(float dt)
 	return units;
 }
 
-Company::Company(const Vector2& pos, ServiceBranch b, int side)
-	: MilitaryUnit(b, side)
+Company::Company(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch b, int side)
+	: MilitaryUnit(commandingunit, b, side)
 {
 	for(int i = 0; i < 4; i++) {
 		mUnits.push_back(std::unique_ptr<Platoon>(new Platoon(this, pos, mBranch, mSide, Army::getNextPid())));
 	}
 }
 
-Battalion::Battalion(const Vector2& pos, ServiceBranch b, int side)
-	: MilitaryUnit(b, side)
+Battalion::Battalion(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch b, int side)
+	: MilitaryUnit(commandingunit, b, side)
 {
 	for(int i = 0; i < 4; i++) {
-		mUnits.push_back(std::unique_ptr<Company>(new Company(pos, mBranch, mSide)));
+		mUnits.push_back(std::unique_ptr<Company>(new Company(this, pos, mBranch, mSide)));
 	}
 }
 
-Brigade::Brigade(const Vector2& pos, ServiceBranch b, int side, const std::vector<ServiceBranch>& config)
-	: MilitaryUnit(b, side)
+Brigade::Brigade(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch b, int side, const std::vector<ServiceBranch>& config)
+	: MilitaryUnit(commandingunit, b, side)
 {
 	for(auto& br : config) {
-		mUnits.push_back(std::unique_ptr<Battalion>(new Battalion(pos, br, mSide)));
+		mUnits.push_back(std::unique_ptr<Battalion>(new Battalion(this, pos, br, mSide)));
 	}
 }
 
 Army::Army(const Terrain& t, const Vector2& base, int side,
 		const std::vector<ServiceBranch>& armyConfiguration)
-	: MilitaryUnit(ServiceBranch::Infantry, side),
+	: MilitaryUnit(nullptr, ServiceBranch::Infantry, side),
 	mTerrain(t),
 	mBase(base)
 {
-	mUnits.push_back(std::unique_ptr<Brigade>(new Brigade(mBase, ServiceBranch::Infantry, mSide, armyConfiguration)));
+	mUnits.push_back(std::unique_ptr<Brigade>(new Brigade(this, mBase, ServiceBranch::Infantry, mSide, armyConfiguration)));
 	MessageDispatcher::instance().dispatchMessage(Message(mEntityID, mUnits[0]->getEntityID(),
 				0.0f, 0.0f, MessageType::ClaimArea, MessageData(Area2(0, 0, mTerrain.getWidth(), mTerrain.getWidth()))));
 }
@@ -293,6 +318,27 @@ const char* branchToName(ServiceBranch b)
 			return "Signal";
 		case ServiceBranch::Supply:
 			return "Supply";
+	}
+	return "";
+}
+
+const char* unitSizeToName(UnitSize s)
+{
+	switch(s) {
+		case UnitSize::Single:
+			return "Single";
+		case UnitSize::Squad:
+			return "Squad";
+		case UnitSize::Platoon:
+			return "Platoon";
+		case UnitSize::Company:
+			return "Company";
+		case UnitSize::Battalion:
+			return "Battalion";
+		case UnitSize::Brigade:
+			return "Brigade";
+		case UnitSize::Division:
+			return "Division";
 	}
 	return "";
 }
