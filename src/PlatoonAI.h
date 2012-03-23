@@ -6,17 +6,7 @@
 
 #include "Messaging.h"
 #include "Terrain.h"
-
-class Platoon;
-
-class PlatoonController {
-	public:
-		PlatoonController(Platoon* p);
-		virtual bool control(float dt) = 0;
-		virtual void receiveMessage(const Message& m) = 0;
-	protected:
-		Platoon* mPlatoon;
-};
+#include "MilitaryUnit.h"
 
 class PlatoonAIState;
 
