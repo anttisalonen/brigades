@@ -2,17 +2,17 @@
 #include <iostream>
 #include "MilitaryUnitAI.h"
 
-SimpleMilitaryUnitController::SimpleMilitaryUnitController(MilitaryUnit* m)
+MilitaryUnitAIController::MilitaryUnitAIController(MilitaryUnit* m)
 	: Controller<MilitaryUnit>(m)
 {
 }
 
-bool SimpleMilitaryUnitController::control(float dt)
+bool MilitaryUnitAIController::control(float dt)
 {
 	return false;
 }
 
-void SimpleMilitaryUnitController::receiveMessage(const Message& m)
+void MilitaryUnitAIController::receiveMessage(const Message& m)
 {
 	switch(m.mType) {
 		case MessageType::ClaimArea:
@@ -55,7 +55,7 @@ void SimpleMilitaryUnitController::receiveMessage(const Message& m)
 			}
 			break;
 		default:
-			std::cout << "Unhandled message " << int(m.mType) << " in SimpleMilitaryUnitController.\n";
+			std::cout << "Unhandled message " << int(m.mType) << " in MilitaryUnitAIController.\n";
 			break;
 	}
 }

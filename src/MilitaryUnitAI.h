@@ -4,9 +4,9 @@
 #include "MilitaryUnit.h"
 #include "Messaging.h"
 
-class SimpleMilitaryUnitController : public Controller<MilitaryUnit> {
+class MilitaryUnitAIController : public Controller<MilitaryUnit> {
 	public:
-		SimpleMilitaryUnitController(MilitaryUnit* m);
+		MilitaryUnitAIController(MilitaryUnit* m);
 		virtual void receiveMessage(const Message& m);
 		virtual bool control(float dt);
 };

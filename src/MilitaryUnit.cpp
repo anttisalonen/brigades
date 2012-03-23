@@ -144,7 +144,7 @@ MilitaryUnit::MilitaryUnit(MilitaryUnit* commandingunit, ServiceBranch b, int si
 	mSide(side),
 	mController(nullptr)
 {
-	mController = std::unique_ptr<Controller<MilitaryUnit>>(new SimpleMilitaryUnitController(this));
+	mController = std::unique_ptr<Controller<MilitaryUnit>>(new MilitaryUnitAIController(this));
 }
 
 const MilitaryUnit* MilitaryUnit::getCommandingUnit() const
