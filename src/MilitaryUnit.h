@@ -50,6 +50,7 @@ class MilitaryUnit : public Entity {
 		virtual UnitSize getUnitSize() const = 0;
 		const MilitaryUnit* getCommandingUnit() const;
 		MilitaryUnit* getCommandingUnit();
+		virtual Vector2 getPosition() const;
 	protected:
 		MilitaryUnit* mCommandingUnit;
 		ServiceBranch mBranch;
@@ -71,7 +72,7 @@ class Platoon : public MilitaryUnit {
 	public:
 		Platoon(MilitaryUnit* commandingunit, const Vector2& pos,
 				ServiceBranch b, int side, int pid);
-		const Vector2& getPosition() const;
+		Vector2 getPosition() const;
 		void setPosition(const Vector2& v);
 		ServiceBranch getBranch() const;
 		int getSide() const;

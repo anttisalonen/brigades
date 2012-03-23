@@ -50,7 +50,7 @@ int Platoon::getPlatoonID() const
 	return mPid;
 }
 
-const Vector2& Platoon::getPosition() const
+Vector2 Platoon::getPosition() const
 {
 	return mPosition;
 }
@@ -204,6 +204,17 @@ std::list<Platoon*> MilitaryUnit::update(float dt)
 		units.splice(units.end(), u->update(dt));
 	}
 	return units;
+}
+
+Vector2 MilitaryUnit::getPosition() const
+{
+	Vector2 pos;
+	for(auto& u : mUnits) {
+		pos += u->getPosition();
+	}
+	if(mUnits.size())
+		pos *= 1.0f / mUnits.size();
+	return pos;
 }
 
 Company::Company(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch b, int side)
