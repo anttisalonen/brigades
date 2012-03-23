@@ -63,12 +63,11 @@ class MilitaryUnit : public Entity {
 class Platoon : public MilitaryUnit {
 	public:
 		Platoon(MilitaryUnit* commandingunit, const Vector2& pos,
-				ServiceBranch b, int side, int pid);
+				ServiceBranch b, int side);
 		Vector2 getPosition() const;
 		void setPosition(const Vector2& v);
 		ServiceBranch getBranch() const;
 		int getSide() const;
-		int getPlatoonID() const;
 		std::list<Platoon*> update(float dt);
 		void receiveMessage(const Message& m);
 		std::list<Platoon*> getPlatoons();
@@ -81,7 +80,6 @@ class Platoon : public MilitaryUnit {
 	private:
 		void checkVisibility();
 		Vector2 mPosition;
-		int mPid;
 		std::unique_ptr<Controller<Platoon>> mController;
 		float mHealth;
 };

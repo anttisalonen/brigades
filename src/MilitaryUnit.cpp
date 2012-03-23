@@ -8,10 +8,9 @@
 #include "Army.h"
 #include "Papaya.h"
 
-Platoon::Platoon(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch b, int side, int pid)
+Platoon::Platoon(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch b, int side)
 	: MilitaryUnit(commandingunit, b, side),
 	mPosition(pos),
-	mPid(pid),
 	mController(nullptr),
 	mHealth(100.0f)
 {
@@ -43,11 +42,6 @@ std::list<Platoon*> Platoon::getPlatoons()
 int Platoon::getSide() const
 {
 	return mSide;
-}
-
-int Platoon::getPlatoonID() const
-{
-	return mPid;
 }
 
 Vector2 Platoon::getPosition() const
@@ -216,7 +210,7 @@ Company::Company(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch
 	: MilitaryUnit(commandingunit, b, side)
 {
 	for(int i = 0; i < 4; i++) {
-		mUnits.push_back(std::unique_ptr<Platoon>(new Platoon(this, pos, mBranch, mSide, Army::getNextPid())));
+		mUnits.push_back(std::unique_ptr<Platoon>(new Platoon(this, pos, mBranch, mSide)));
 	}
 }
 

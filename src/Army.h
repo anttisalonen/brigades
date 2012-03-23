@@ -13,12 +13,10 @@ class Army : public MilitaryUnit {
 	public:
 		Army(const Terrain& t, const Vector2& base, int side,
 				const std::vector<ServiceBranch>& armyConfiguration);
-		static int getNextPid();
 		UnitSize getUnitSize() const;
 	private:
 		const Terrain& mTerrain;
 		Vector2 mBase;
-		static int nextPid;
 };
 
 #endif

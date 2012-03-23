@@ -2,8 +2,6 @@
 #include "Army.h"
 #include "Papaya.h"
 
-int Army::nextPid = 0;
-
 Army::Army(const Terrain& t, const Vector2& base, int side,
 		const std::vector<ServiceBranch>& armyConfiguration)
 	: MilitaryUnit(nullptr, ServiceBranch::Infantry, side),
@@ -18,11 +16,6 @@ Army::Army(const Terrain& t, const Vector2& base, int side,
 EntityID Entity::getEntityID() const
 {
 	return mEntityID;
-}
-
-int Army::getNextPid()
-{
-	return ++nextPid;
 }
 
 const char* branchToName(ServiceBranch b)
