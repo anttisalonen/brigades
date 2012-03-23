@@ -348,7 +348,7 @@ Ogre::Entity* App::createUnitNode(const MilitaryUnit& m)
 	Ogre::MaterialPtr material = Ogre::MaterialManager::getSingleton().getByName(materialname,
 			APP_RESOURCE_NAME);
 	if(material.isNull()) {
-		std::cerr << "Creating material " << materialname << "\n";
+		Ogre::LogManager::getSingleton().stream() << "Creating material " << materialname << "\n";
 		material = Ogre::MaterialManager::getSingleton().create(materialname,
 				APP_RESOURCE_NAME);
 		material->setAmbient(mTeamColors[m.getSide()]);
