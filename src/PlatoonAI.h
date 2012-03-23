@@ -10,7 +10,7 @@
 
 class PlatoonAIState;
 
-class PlatoonAIController : public PlatoonController {
+class PlatoonAIController : public Controller<Platoon> {
 	public:
 		PlatoonAIController(Platoon* p);
 		bool control(float dt);
@@ -21,7 +21,7 @@ class PlatoonAIController : public PlatoonController {
 		std::stack<std::unique_ptr<PlatoonAIState>> mControllerStack;
 };
 
-class PlatoonAIState : public PlatoonController {
+class PlatoonAIState : public Controller<Platoon> {
 	public:
 		PlatoonAIState(Platoon* p, PlatoonAIController* c);
 	protected:

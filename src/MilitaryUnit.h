@@ -29,13 +29,14 @@ enum class UnitSize {
 
 class MilitaryUnit;
 
-class MilitaryUnitController {
+template <class T>
+class Controller {
 	public:
-		MilitaryUnitController(MilitaryUnit* m);
+		Controller<T>(T* m) : mUnit(m) { }
 		virtual bool control(float dt) = 0;
 		virtual void receiveMessage(const Message& m) = 0;
 	protected:
-		MilitaryUnit* mUnit;
+		T* mUnit;
 };
 
 class MilitaryUnit : public Entity {
@@ -56,16 +57,7 @@ class MilitaryUnit : public Entity {
 		ServiceBranch mBranch;
 		int mSide;
 		std::vector<std::unique_ptr<MilitaryUnit>> mUnits;
-		std::unique_ptr<MilitaryUnitController> mController;
-};
-
-class PlatoonController {
-	public:
-		PlatoonController(Platoon* p);
-		virtual bool control(float dt) = 0;
-		virtual void receiveMessage(const Message& m) = 0;
-	protected:
-		Platoon* mPlatoon;
+		std::unique_ptr<Controller<MilitaryUnit>> mController;
 };
 
 class Platoon : public MilitaryUnit {
@@ -80,7 +72,7 @@ class Platoon : public MilitaryUnit {
 		std::list<Platoon*> update(float dt);
 		void receiveMessage(const Message& m);
 		std::list<Platoon*> getPlatoons();
-		void setController(std::unique_ptr<PlatoonController> c);
+		void setController(std::unique_ptr<Controller<Platoon>> c);
 		void loseHealth(float damage);
 		bool isDead() const;
 		float getHealth() const;
@@ -90,7 +82,7 @@ class Platoon : public MilitaryUnit {
 		void checkVisibility();
 		Vector2 mPosition;
 		int mPid;
-		std::unique_ptr<PlatoonController> mController;
+		std::unique_ptr<Controller<Platoon>> mController;
 		float mHealth;
 };
 

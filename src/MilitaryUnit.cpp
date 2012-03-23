@@ -15,7 +15,7 @@ Platoon::Platoon(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch
 	mController(nullptr),
 	mHealth(100.0f)
 {
-	mController = std::unique_ptr<PlatoonController>(new PlatoonAIController(this));
+	mController = std::unique_ptr<Controller<Platoon>>(new PlatoonAIController(this));
 }
 
 ServiceBranch Platoon::getBranch() const
@@ -65,7 +65,7 @@ void Platoon::receiveMessage(const Message& m)
 	mController->receiveMessage(m);
 }
 
-void Platoon::setController(std::unique_ptr<PlatoonController> c)
+void Platoon::setController(std::unique_ptr<Controller<Platoon>> c)
 {
 	mController.swap(c);
 }
@@ -150,7 +150,7 @@ MilitaryUnit::MilitaryUnit(MilitaryUnit* commandingunit, ServiceBranch b, int si
 	mSide(side),
 	mController(nullptr)
 {
-	mController = std::unique_ptr<MilitaryUnitController>(new SimpleMilitaryUnitController(this));
+	mController = std::unique_ptr<Controller<MilitaryUnit>>(new SimpleMilitaryUnitController(this));
 }
 
 const MilitaryUnit* MilitaryUnit::getCommandingUnit() const
@@ -161,11 +161,6 @@ const MilitaryUnit* MilitaryUnit::getCommandingUnit() const
 MilitaryUnit* MilitaryUnit::getCommandingUnit()
 {
 	return mCommandingUnit;
-}
-
-MilitaryUnitController::MilitaryUnitController(MilitaryUnit* m)
-	: mUnit(m)
-{
 }
 
 const std::vector<std::unique_ptr<MilitaryUnit>>& MilitaryUnit::getUnits() const

@@ -3,7 +3,7 @@
 #include "MilitaryUnitAI.h"
 
 SimpleMilitaryUnitController::SimpleMilitaryUnitController(MilitaryUnit* m)
-	: MilitaryUnitController(m)
+	: Controller<MilitaryUnit>(m)
 {
 }
 
@@ -48,6 +48,10 @@ void SimpleMilitaryUnitController::receiveMessage(const Message& m)
 									0.0f, 0.0f, MessageType::ClaimArea, areas[i]));
 					}
 				}
+			}
+			break;
+		case MessageType::EnemyDiscovered:
+			{
 			}
 			break;
 		default:
