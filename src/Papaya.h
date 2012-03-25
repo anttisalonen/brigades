@@ -25,10 +25,12 @@ class Papaya {
 		void removeEventListener(PapayaEventListener* l);
 		static Papaya& instance();
 		float getPlatoonSpeed(const Platoon& p) const;
+		float getCurrentTime() const;
 	private:
 		const Terrain* mTerrain;
 		std::vector<std::unique_ptr<Army>> mArmies;
 		std::vector<PapayaEventListener*> mListeners;
+		float mTime;
 };
 
 #endif

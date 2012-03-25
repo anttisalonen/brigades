@@ -7,6 +7,7 @@
 static const float maximum_tank_vegetation = 0.2f;
 
 Papaya::Papaya()
+	: mTime(100)
 {
 }
 
@@ -65,6 +66,8 @@ void Papaya::process(float dt)
 			}
 		}
 	}
+	MessageDispatcher::instance().dispatchQueuedMessages();
+	mTime += dt * 0.1f;
 }
 
 const Army* Papaya::getArmy(size_t side) const
@@ -109,4 +112,10 @@ float Papaya::getPlatoonSpeed(const Platoon& p) const
 	}
 	return base;
 }
+
+float Papaya::getCurrentTime() const
+{
+	return mTime;
+}
+
 

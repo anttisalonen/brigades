@@ -4,6 +4,8 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <queue>
+
 #include "Terrain.h"
 
 enum class MessageType {
@@ -11,6 +13,7 @@ enum class MessageType {
 	EnemyDiscovered,
 	ReachedPosition,
 	PlatoonDied,
+	AttackEnemy,
 };
 
 typedef int EntityID;
@@ -31,12 +34,12 @@ class Message {
 	public:
 		Message(EntityID sender, EntityID receiver, float creationTime, float delay,
 				MessageType type, const MessageData& data);
-		const EntityID mSender;
-		const EntityID mReceiver;
-		const float mCreationTime;
-		const float mSendTime;
+		EntityID mSender;
+		EntityID mReceiver;
+		float mCreationTime;
+		float mSendTime;
 		MessageType mType;
-		std::unique_ptr<MessageData> mData;
+		std::shared_ptr<MessageData> mData;
 };
 
 class WorldEntity {
@@ -64,14 +67,22 @@ class EntityManager {
 		std::map<EntityID, Entity*> mEntityMap;
 };
 
+struct messageSendCompare {
+	bool operator()(const Message& m1, const Message& m2) const;
+};
+
 class MessageDispatcher {
 	public:
 		MessageDispatcher();
 		static MessageDispatcher& instance();
 		void dispatchMessage(const Message& m);
 		void registerWorldEntity(WorldEntity* e);
+		void dispatchQueuedMessages();
 	private:
+		void queueMessage(const Message& m);
+		void sendMessage(const Message& m);
 		std::vector<WorldEntity*> mWorldEntities;
+		std::priority_queue<Message, std::vector<Message>, messageSendCompare> mMessageQueue;
 };
 
 #endif

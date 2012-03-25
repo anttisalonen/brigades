@@ -66,10 +66,17 @@ void PlatoonAIDefendState::receiveMessage(const Message& m)
 				mAIController->pushController(std::unique_ptr<PlatoonAIState>(new PlatoonAIMoveState(mUnit, mAIController, v)));
 			}
 			break;
+
 		case MessageType::EnemyDiscovered:
-			std::cout << "Discovered enemy while defending.\n";
+			mAIController->pushController(std::unique_ptr<PlatoonAIState>(new PlatoonAICombatState(mUnit, mAIController, m.mData->platoon)));
+			MessageDispatcher::instance().dispatchMessage(Message(mUnit->getEntityID(), mUnit->getCommandingUnit()->getEntityID(),
+						0.0f, 0.0f, MessageType::EnemyDiscovered, m.mData->platoon));
+			break;
+
+		case MessageType::AttackEnemy:
 			mAIController->pushController(std::unique_ptr<PlatoonAIState>(new PlatoonAICombatState(mUnit, mAIController, m.mData->platoon)));
 			break;
+
 		default:
 			std::cout << "Unhandled message " << int(m.mType) << " in PlatoonAIDefendState.\n";
 			break;
@@ -99,10 +106,24 @@ bool PlatoonAIMoveState::control(float dt)
 void PlatoonAIMoveState::receiveMessage(const Message& m)
 {
 	switch(m.mType) {
+		case MessageType::ClaimArea:
+			{
+				Vector2 v((m.mData->area.x2 + m.mData->area.x1) / 2.0f,
+						(m.mData->area.y2 + m.mData->area.y1) / 2.0f);
+				mTargetPos = v;
+			}
+			break;
+
 		case MessageType::EnemyDiscovered:
-			std::cout << "Discovered enemy while moving.\n";
+			mAIController->pushController(std::unique_ptr<PlatoonAIState>(new PlatoonAICombatState(mUnit, mAIController, m.mData->platoon)));
+			MessageDispatcher::instance().dispatchMessage(Message(mUnit->getEntityID(), mUnit->getCommandingUnit()->getEntityID(),
+						0.0f, 0.0f, MessageType::EnemyDiscovered, m.mData->platoon));
+			break;
+
+		case MessageType::AttackEnemy:
 			mAIController->pushController(std::unique_ptr<PlatoonAIState>(new PlatoonAICombatState(mUnit, mAIController, m.mData->platoon)));
 			break;
+
 		default:
 			std::cout << "Unhandled message " << int(m.mType) << " in PlatoonAIMoveState.\n";
 			break;
@@ -136,8 +157,16 @@ void PlatoonAICombatState::receiveMessage(const Message& m)
 {
 	switch(m.mType) {
 		case MessageType::EnemyDiscovered:
+			if(mUnit->distanceTo(*m.mData->platoon) < mUnit->distanceTo(*mEnemyPlatoon))
+				mEnemyPlatoon = m.mData->platoon;
+			MessageDispatcher::instance().dispatchMessage(Message(mUnit->getEntityID(), mUnit->getCommandingUnit()->getEntityID(),
+						0.0f, 0.0f, MessageType::EnemyDiscovered, m.mData->platoon));
+			break;
+
+		case MessageType::AttackEnemy:
 			// already in combat
 			break;
+
 		default:
 			std::cout << "Unhandled message " << int(m.mType) << " in PlatoonAICombatState.\n";
 			break;

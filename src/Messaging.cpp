@@ -1,5 +1,7 @@
 #include <iostream>
+
 #include "Messaging.h"
+#include "Papaya.h"
 
 Message::Message(EntityID sender, EntityID receiver, float creationTime, float delay,
 		MessageType type, const MessageData& data)
@@ -10,6 +12,10 @@ Message::Message(EntityID sender, EntityID receiver, float creationTime, float d
 	mType(type),
 	mData(std::unique_ptr<MessageData>(new MessageData(data)))
 {
+	if(mCreationTime < 0.01f) {
+		mCreationTime = Papaya::instance().getCurrentTime();
+		mSendTime = mCreationTime + delay;
+	}
 }
 
 Entity::Entity()
@@ -44,6 +50,10 @@ Entity* EntityManager::getEntity(EntityID e)
 		return it->second;
 }
 
+bool messageSendCompare::operator()(const Message& m1, const Message& m2) const {
+	return m1.mSendTime > m2.mSendTime;
+}
+
 MessageDispatcher::MessageDispatcher()
 {
 }
@@ -62,6 +72,16 @@ void MessageDispatcher::registerWorldEntity(WorldEntity* e)
 
 void MessageDispatcher::dispatchMessage(const Message& m)
 {
+	if(m.mSendTime > Papaya::instance().getCurrentTime() + 0.01f) {
+		queueMessage(m);
+	}
+	else {
+		sendMessage(m);
+	}
+}
+
+void MessageDispatcher::sendMessage(const Message& m)
+{
 	if(m.mReceiver == WORLD_ENTITY_ID) {
 		for(auto l : mWorldEntities) {
 			l->receiveMessage(m);
@@ -77,4 +97,20 @@ void MessageDispatcher::dispatchMessage(const Message& m)
 		}
 	}
 }
+
+void MessageDispatcher::queueMessage(const Message& m)
+{
+	mMessageQueue.push(m);
+}
+
+void MessageDispatcher::dispatchQueuedMessages()
+{
+	float time = Papaya::instance().getCurrentTime();
+	while(!mMessageQueue.empty() && mMessageQueue.top().mSendTime <= time) {
+		const Message& m = mMessageQueue.top();
+		sendMessage(m);
+		mMessageQueue.pop();
+	}
+}
+
 

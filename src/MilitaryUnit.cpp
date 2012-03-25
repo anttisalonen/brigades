@@ -206,6 +206,12 @@ Vector2 MilitaryUnit::getPosition() const
 	return pos;
 }
 
+float MilitaryUnit::distanceTo(const MilitaryUnit& m) const
+{
+	Vector2 diff = getPosition() - m.getPosition();
+	return diff.length();
+}
+
 Company::Company(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch b, int side)
 	: MilitaryUnit(commandingunit, b, side)
 {

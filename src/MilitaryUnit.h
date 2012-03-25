@@ -52,6 +52,7 @@ class MilitaryUnit : public Entity {
 		const MilitaryUnit* getCommandingUnit() const;
 		MilitaryUnit* getCommandingUnit();
 		virtual Vector2 getPosition() const;
+		float distanceTo(const MilitaryUnit& m) const;
 	protected:
 		MilitaryUnit* mCommandingUnit;
 		ServiceBranch mBranch;
