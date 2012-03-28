@@ -14,7 +14,10 @@ App::App()
 	mForwardVelocity(0),
 	mMapRenderType(0),
 	mUnitScale(UnitSize::Platoon),
-	mUnitScaleChanged(true)
+	mUnitScaleChanged(true),
+	mWindowWidth(0),
+	mWindowHeight(0),
+	mTimeScale(1)
 {
 	Papaya::instance().setup(&mTerrain);
 	// get user data directory
@@ -43,7 +46,9 @@ App::App()
 		params["FSAA"] = "0";
 		params["vsync"] = "true";
 		params["border"] = "fixed";
-		mWindow = mRoot->createRenderWindow("Army", 800, 600, false, &params);
+		mWindowWidth = 800;
+		mWindowHeight = 600;
+		mWindow = mRoot->createRenderWindow("Army", mWindowWidth, mWindowHeight, false, &params);
 		if(!mWindow) {
 			mRoot.reset();
 			throw std::runtime_error("Could not create the render window.\n");
@@ -61,11 +66,15 @@ App::App()
 		mCamera->setPosition(64, 64, 100.0f);
 		mCamera->lookAt(64, 64, 0);
 
+		mRaySceneQuery = mScene->createRayQuery(Ogre::Ray());
+
 		initResources();
 
 		initInput();
+		checkWindowResize();
 
 		createUnitMesh();
+		createExtraMaterials();
 		createTerrain();
 		Papaya::instance().addEventListener(this);
 		MessageDispatcher::instance().registerWorldEntity(this);
@@ -76,6 +85,7 @@ App::App()
 
 App::~App()
 {
+	mScene->destroyQuery(mRaySceneQuery);
 	mWindow->removeAllViewports();
 	mScene->destroyAllCameras();
 	mScene->destroyAllEntities();
@@ -115,6 +125,8 @@ void App::initInput()
 	mInputManager = OIS::InputManager::createInputSystem(pl);
 	mKeyboard = static_cast<OIS::Keyboard*>(mInputManager->createInputObject(OIS::OISKeyboard, true));
 	mKeyboard->setEventCallback(this);
+	mMouse = static_cast<OIS::Mouse*>(mInputManager->createInputObject(OIS::OISMouse, true));
+	mMouse->setEventCallback(this);
 }
 
 void App::createUnitMesh()
@@ -125,6 +137,27 @@ void App::createUnitMesh()
 			1, 1.0f, 1.0f, Ogre::Vector3::UNIT_Y);
 	mTeamColors[1] = Ogre::ColourValue::Blue;
 	mTeamColors[2] = Ogre::ColourValue::Red;
+}
+
+void App::createExtraMaterials()
+{
+	// line
+	Ogre::MaterialPtr lineMaterial = Ogre::MaterialManager::getSingleton().create("LineMaterial",
+			APP_RESOURCE_NAME);
+	lineMaterial->setReceiveShadows(false); 
+	lineMaterial->getTechnique(0)->setLightingEnabled(true); 
+	lineMaterial->getTechnique(0)->getPass(0)->setDiffuse(0,0,1,0); 
+	lineMaterial->getTechnique(0)->getPass(0)->setAmbient(0,0,1); 
+	lineMaterial->getTechnique(0)->getPass(0)->setSelfIllumination(0,0,1); 
+
+	mLineObject = mScene->createManualObject("LineObject");
+	Ogre::SceneNode* node = mScene->getRootSceneNode()->createChildSceneNode("Line"); 
+
+	mLineObject->begin("LineMaterial", Ogre::RenderOperation::OT_LINE_LIST); 
+	mLineObject->position(0, 0, 0); 
+	mLineObject->position(0, 0, 0); 
+	mLineObject->end(); 
+	node->attachObject(mLineObject);
 }
 
 void App::createTexture(const std::string& name, size_t width, size_t height,
@@ -203,9 +236,9 @@ void App::createTerrainTextures()
 void App::createTerrain()
 {
 	createTerrainTextures();
-	Ogre::Plane plane(Ogre::Vector3::UNIT_Z, 0.0f);
+	mTerrainPlane = Ogre::Plane(Ogre::Vector3::UNIT_Z, 0.0f);
 	Ogre::MeshManager::getSingleton().createPlane("terrain1",
-			APP_RESOURCE_NAME, plane, 128, 128, 4, 4, true,
+			APP_RESOURCE_NAME, mTerrainPlane, 128, 128, 4, 4, true,
 			1, 1.0f, 1.0f, Ogre::Vector3::UNIT_Y);
 	Ogre::Entity* planeEnt = mScene->createEntity("plane1", "terrain1");
 	updateTerrain();
@@ -218,13 +251,31 @@ void App::createTerrain()
 void App::run()
 {
 	while(mRunning && !mWindow->isClosed()) {
-		Papaya::instance().process(1.0f);
+		Papaya::instance().process(mTimeScale * 0.01f);
 		setupUnitDisplay();
 		mRoot->renderOneFrame();
+		checkWindowResize();
 		Ogre::WindowEventUtilities::messagePump();
 		mKeyboard->capture();
+		mMouse->capture();
 		mCamNode->translate(mRightVelocity, mUpVelocity, mForwardVelocity);
 	}
+}
+
+bool App::checkWindowResize()
+{
+	unsigned int mOldWidth, mOldHeight;
+	mOldWidth = mWindowWidth;
+	mOldHeight = mWindowHeight;
+	mWindowWidth = mWindow->getWidth();
+	mWindowHeight = mWindow->getHeight();
+	if(mWindowWidth != mOldWidth || mWindowHeight != mOldHeight) {
+		mMouse->getMouseState().width = mWindowWidth;
+		mMouse->getMouseState().height = mWindowHeight;
+		std::cout << "New window size: " << mWindowWidth << " x " << mWindowHeight << "\n";
+		return true;
+	}
+	return false;
 }
 
 void App::setupUnitDisplay()
@@ -296,6 +347,16 @@ bool App::keyPressed(const OIS::KeyEvent &arg)
 			mUnitScale = UnitSize::Brigade;
 			mUnitScaleChanged = true;
 			break;
+		case OIS::KC_ADD:
+			if(mTimeScale < 128)
+				mTimeScale *= 2;
+			std::cout << "Time scale: " << mTimeScale << "\n";
+			break;
+		case OIS::KC_SUBTRACT:
+			if(mTimeScale > 1)
+				mTimeScale /= 2;
+			std::cout << "Time scale: " << mTimeScale << "\n";
+			break;
 		default:
 			break;
 	}
@@ -320,6 +381,47 @@ bool App::keyReleased(const OIS::KeyEvent &arg)
 		default:
 			break;
 	}
+	return true;
+}
+
+bool App::mouseMoved(const OIS::MouseEvent& arg)
+{
+	return true;
+}
+
+bool App::mousePressed(const OIS::MouseEvent& arg, OIS::MouseButtonID button)
+{
+	if(button == OIS::MB_Left) {
+		Ogre::Ray mouseRay = mCamera->getCameraToViewportRay(arg.state.X.abs / float(arg.state.width),
+				arg.state.Y.abs / float(arg.state.height));
+		mRaySceneQuery->setRay(mouseRay);
+		mRaySceneQuery->setSortByDistance(true);
+		Ogre::RaySceneQueryResult& result = mRaySceneQuery->execute();
+		for (Ogre::RaySceneQueryResult::iterator itr = result.begin(); itr != result.end(); itr++) {
+			// Is this result a MovableObject?
+			if (itr->movable && itr->movable->getName() != std::string("Camera"))
+			{
+				std::cout << "MovableObject: " << itr->movable->getName() << "\n";
+			}
+		}
+
+		std::pair<bool, Ogre::Real> intres = mouseRay.intersects(mTerrainPlane);
+		if(intres.first) {
+			Ogre::Vector3 point = mouseRay.getPoint(intres.second);
+			mLineEnd.x = point.x;
+			mLineEnd.y = point.y;
+			std::cout << "Point at " << mLineEnd << "\n";
+			mLineObject->beginUpdate(0);
+			mLineObject->position(0, 0, 2); 
+			mLineObject->position(mLineEnd.x, mLineEnd.y, 2); 
+			mLineObject->end(); 
+		}
+	}
+	return true;
+}
+
+bool App::mouseReleased(const OIS::MouseEvent& arg, OIS::MouseButtonID button)
+{
 	return true;
 }
 

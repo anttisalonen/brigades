@@ -11,7 +11,7 @@
 #include "Papaya.h"
 #include "Messaging.h"
 
-class App : public OIS::KeyListener, public PapayaEventListener, public WorldEntity {
+class App : public OIS::KeyListener, public OIS::MouseListener, public PapayaEventListener, public WorldEntity {
 	public:
 		App();
 		~App();
@@ -20,10 +20,14 @@ class App : public OIS::KeyListener, public PapayaEventListener, public WorldEnt
 		bool keyReleased(const OIS::KeyEvent &arg);
 		void PlatoonStatusChanged(const Platoon* p);
 		void receiveMessage(const Message& m);
+		bool mouseMoved(const OIS::MouseEvent& arg);
+		bool mousePressed(const OIS::MouseEvent& arg, OIS::MouseButtonID button);
+		bool mouseReleased(const OIS::MouseEvent& arg, OIS::MouseButtonID button);
 	private:
 		void initResources();
 		void initInput();
 		void createUnitMesh();
+		void createExtraMaterials();
 		void createTerrain();
 		void createTerrainTextures();
 		void updateTerrain();
@@ -33,6 +37,7 @@ class App : public OIS::KeyListener, public PapayaEventListener, public WorldEnt
 		Ogre::Entity* createUnitNode(const MilitaryUnit& m);
 		void updateUnitPosition(const MilitaryUnit* m, Vector2 pos);
 		void setUnitNodeScale(Ogre::SceneNode* n, const MilitaryUnit& m);
+		bool checkWindowResize();
 
 		struct UnitDrawInfo {
 			UnitDrawInfo(Ogre::SceneNode* node)
@@ -58,8 +63,14 @@ class App : public OIS::KeyListener, public PapayaEventListener, public WorldEnt
 		Ogre::Camera* mCamera;
 		Ogre::SceneNode* mCamNode;
 		Ogre::Viewport* mViewport;
+		Ogre::RaySceneQuery* mRaySceneQuery;
+		Ogre::Plane mTerrainPlane;
+		Ogre::ManualObject* mLineObject;
+
 		OIS::InputManager* mInputManager;
 		OIS::Keyboard* mKeyboard;
+		OIS::Mouse* mMouse;
+
 		std::string mUserDataDir;
 		Terrain mTerrain;
 		bool mRunning;
@@ -74,6 +85,10 @@ class App : public OIS::KeyListener, public PapayaEventListener, public WorldEnt
 		std::map<int, Ogre::ColourValue> mTeamColors;
 		UnitSize mUnitScale;
 		bool mUnitScaleChanged;
+		unsigned int mWindowWidth;
+		unsigned int mWindowHeight;
+		Vector2 mLineEnd;
+		unsigned int mTimeScale;
 };
 
 #endif
