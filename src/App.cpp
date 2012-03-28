@@ -135,8 +135,8 @@ void App::createUnitMesh()
 	Ogre::MeshManager::getSingleton().createPlane("UnitMesh",
 			APP_RESOURCE_NAME, plane, 0.4f, 0.4f, 4, 4, true,
 			1, 1.0f, 1.0f, Ogre::Vector3::UNIT_Y);
-	mTeamColors[1] = Ogre::ColourValue::Blue;
-	mTeamColors[2] = Ogre::ColourValue::Red;
+	mTeamColors[1] = Ogre::ColourValue(0.42, 0.65, 1.0);
+	mTeamColors[2] = Ogre::ColourValue(1.0, 0.42, 0.42);
 }
 
 void App::createExtraMaterials()
@@ -462,7 +462,7 @@ Ogre::Entity* App::createUnitNode(const MilitaryUnit& m)
 		t1->setColourOperation(Ogre::LBO_MODULATE);
 		t1->setAlphaOperation(Ogre::LBX_MODULATE);
 		Ogre::TextureUnitState* t2 = material->getTechnique(0)->getPass(0)->createTextureUnitState(texturename2);
-		t2->setColourOperation(Ogre::LBO_MODULATE);
+		t2->setColourOperation(Ogre::LBO_ALPHA_BLEND);
 		t2->setAlphaOperation(Ogre::LBX_ADD);
 	}
 	unitEnt->setMaterialName(materialname);
