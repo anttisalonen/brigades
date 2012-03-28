@@ -216,7 +216,7 @@ Company::Company(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch
 	: MilitaryUnit(commandingunit, b, side)
 {
 	for(int i = 0; i < 4; i++) {
-		mUnits.push_back(std::unique_ptr<Platoon>(new Platoon(this, pos, mBranch, mSide)));
+		mUnits.push_back(std::unique_ptr<Platoon>(new Platoon(this, pos + spawnUnitDisplacement(), mBranch, mSide)));
 	}
 }
 
@@ -224,7 +224,7 @@ Battalion::Battalion(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBr
 	: MilitaryUnit(commandingunit, b, side)
 {
 	for(int i = 0; i < 4; i++) {
-		mUnits.push_back(std::unique_ptr<Company>(new Company(this, pos, mBranch, mSide)));
+		mUnits.push_back(std::unique_ptr<Company>(new Company(this, pos + spawnUnitDisplacement(), mBranch, mSide)));
 	}
 }
 
@@ -232,8 +232,33 @@ Brigade::Brigade(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch
 	: MilitaryUnit(commandingunit, b, side)
 {
 	for(auto& br : config) {
-		mUnits.push_back(std::unique_ptr<Battalion>(new Battalion(this, pos, br, mSide)));
+		mUnits.push_back(std::unique_ptr<Battalion>(new Battalion(this, pos + spawnUnitDisplacement(), br, mSide)));
 	}
 }
 
+Vector2 MilitaryUnit::spawnUnitDisplacement() const
+{
+	float add = 0.002f;
+	switch(getUnitSize()) {
+		case UnitSize::Division:
+			add *= 4;
+		case UnitSize::Brigade:
+			add *= 2;
+		case UnitSize::Battalion:
+			add *= 4;
+		case UnitSize::Company:
+			add *= 4;
+		case UnitSize::Platoon:
+			add *= 8;
+		case UnitSize::Squad:
+			add *= 8;
+		case UnitSize::Single:
+			break;
+	}
+
+	int num = mUnits.size();
+	if(getSide() % 2 == 0)
+		num = -num;
+	return Vector2(num % 2 * add, num / 2 * add);
+}
 
