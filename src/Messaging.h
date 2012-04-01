@@ -10,6 +10,7 @@
 
 enum class MessageType {
 	ClaimArea,
+	Goto,
 	EnemyDiscovered,
 	ReachedPosition,
 	PlatoonDied,
@@ -25,9 +26,11 @@ class Platoon;
 union MessageData {
 	MessageData(const Area2& a) : area(a) { }
 	MessageData(Platoon* p) : platoon(p) { }
+	MessageData(const Vector2& p) : point(p) { }
 	MessageData() { }
 	Area2 area;
 	Platoon* platoon;
+	Vector2 point;
 };
 
 class Message {

@@ -15,6 +15,10 @@ bool MilitaryUnitAIController::control(float dt)
 void MilitaryUnitAIController::receiveMessage(const Message& m)
 {
 	switch(m.mType) {
+		case MessageType::Goto:
+			std::cout << "Military Unit does not support Goto. Use ClaimArea instead.\n";
+			break;
+
 		case MessageType::ClaimArea:
 			{
 				std::vector<std::shared_ptr<MilitaryUnit>> combatUnits = getCombatUnits();

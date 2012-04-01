@@ -59,6 +59,10 @@ bool PlatoonAIDefendState::control(float dt)
 void PlatoonAIDefendState::receiveMessage(const Message& m)
 {
 	switch(m.mType) {
+		case MessageType::Goto:
+			mAIController->pushController(std::unique_ptr<PlatoonAIState>(new PlatoonAIMoveState(mUnit, mAIController, m.mData->point)));
+			break;
+
 		case MessageType::ClaimArea:
 			{
 				Vector2 v((m.mData->area.x2 + m.mData->area.x1) / 2.0f,
@@ -106,6 +110,10 @@ bool PlatoonAIMoveState::control(float dt)
 void PlatoonAIMoveState::receiveMessage(const Message& m)
 {
 	switch(m.mType) {
+		case MessageType::Goto:
+			mTargetPos = m.mData->point;
+			break;
+
 		case MessageType::ClaimArea:
 			{
 				Vector2 v((m.mData->area.x2 + m.mData->area.x1) / 2.0f,

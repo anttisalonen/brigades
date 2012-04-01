@@ -22,6 +22,7 @@ App::App()
 	mWindowWidth(0),
 	mWindowHeight(0),
 	mTimeScale(1),
+	mOwnUnit(nullptr),
 	mObserver(false),
 	mTargetArea(nullptr)
 {
@@ -109,6 +110,7 @@ void App::setupHumanControls()
 			m = m->getUnits().at(0);
 		}
 		std::shared_ptr<GUIController> c(new GUIController(this, m.get()));
+		mOwnUnit = m;
 		m->setController(c);
 		for(auto& p : m->getPlatoons()) {
 			mControlledUnits.push_back(std::pair<MilitaryUnit*, std::shared_ptr<GUIController>>(p, c));
@@ -415,9 +417,11 @@ bool App::mouseMoved(const OIS::MouseEvent& arg)
 
 bool App::mousePressed(const OIS::MouseEvent& arg, OIS::MouseButtonID button)
 {
+	Ogre::Ray mouseRay = mCamera->getCameraToViewportRay(arg.state.X.abs / float(arg.state.width),
+			arg.state.Y.abs / float(arg.state.height));
+	std::pair<bool, Ogre::Real> intres = mouseRay.intersects(mTerrainPlane);
+
 	if(button == OIS::MB_Left) {
-		Ogre::Ray mouseRay = mCamera->getCameraToViewportRay(arg.state.X.abs / float(arg.state.width),
-				arg.state.Y.abs / float(arg.state.height));
 		mRaySceneQuery->setRay(mouseRay);
 		mRaySceneQuery->setSortByDistance(true);
 		Ogre::RaySceneQueryResult& result = mRaySceneQuery->execute();
@@ -426,10 +430,13 @@ bool App::mousePressed(const OIS::MouseEvent& arg, OIS::MouseButtonID button)
 			if (itr->movable && itr->movable->getName() != std::string("Camera"))
 			{
 				std::cout << "MovableObject: " << itr->movable->getName() << "\n";
+				Ogre::Entity* e = dynamic_cast<Ogre::Entity*>(itr->movable);
+				if(e) {
+					setSelectedUnit(e);
+				}
 			}
 		}
 
-		std::pair<bool, Ogre::Real> intres = mouseRay.intersects(mTerrainPlane);
 		if(intres.first) {
 			Ogre::Vector3 point = mouseRay.getPoint(intres.second);
 			mLineEnd.x = point.x;
@@ -439,6 +446,17 @@ bool App::mousePressed(const OIS::MouseEvent& arg, OIS::MouseButtonID button)
 			mLineObject->position(0, 0, lineHeight); 
 			mLineObject->position(mLineEnd.x, mLineEnd.y, lineHeight); 
 			mLineObject->end(); 
+		}
+	}
+	else if(button == OIS::MB_Right && intres.first) {
+		for(auto& pair : mSelectedUnits) {
+			if(humanControlled(pair.first)) {
+				Ogre::Vector3 op = mouseRay.getPoint(intres.second);
+				Vector2 point = Vector2(op.x, op.y);
+				MessageDispatcher::instance().dispatchMessage(Message(mOwnUnit->getEntityID(),
+							pair.first->getEntityID(),
+							0.0f, 0.0f, MessageType::Goto, point));
+			}
 		}
 	}
 	return true;
@@ -461,13 +479,10 @@ void App::receiveMessage(const Message& m)
 	}
 }
 
-Ogre::Entity* App::createUnitNode(const MilitaryUnit& m)
+void App::updateUnitMaterial(const MilitaryUnit& m, Ogre::Entity* ent)
 {
-	const std::string unitsize(unitSizeToName(m.getUnitSize()));
 	const std::string unittype(branchToName(m.getBranch()));
-	std::ostringstream ss;
-	ss << unitsize << m.getEntityID();
-	Ogre::Entity* unitEnt = mScene->createEntity(ss.str(), "UnitMesh");
+	const std::string unitsize(unitSizeToName(m.getUnitSize()));
 	std::string materialname = getUnitMaterialName(m);
 	Ogre::MaterialPtr material = Ogre::MaterialManager::getSingleton().getByName(materialname,
 			APP_RESOURCE_NAME);
@@ -497,7 +512,16 @@ Ogre::Entity* App::createUnitNode(const MilitaryUnit& m)
 			t4->setAlphaOperation(Ogre::LBX_ADD);
 		}
 	}
-	unitEnt->setMaterialName(materialname);
+	ent->setMaterialName(materialname);
+}
+
+Ogre::Entity* App::createUnitNode(const MilitaryUnit& m)
+{
+	std::ostringstream ss;
+	const std::string unitsize(unitSizeToName(m.getUnitSize()));
+	ss << unitsize << m.getEntityID();
+	Ogre::Entity* unitEnt = mScene->createEntity(ss.str(), "UnitMesh");
+	updateUnitMaterial(m, unitEnt);
 	return unitEnt;
 }
 
@@ -510,7 +534,9 @@ bool App::humanControlled(const MilitaryUnit* m) const
 
 bool App::unitSelected(const MilitaryUnit* m) const
 {
-	return std::find(mSelectedUnits.begin(), mSelectedUnits.end(), m) != mSelectedUnits.end();
+	return std::find_if(mSelectedUnits.begin(), mSelectedUnits.end(),
+			[=](const std::pair<MilitaryUnit*, Ogre::Entity*>& m1) { return m1.first == m; })
+		!= mSelectedUnits.end();
 }
 
 std::string App::getUnitMaterialName(const MilitaryUnit& m) const
@@ -603,7 +629,6 @@ void App::PlatoonStatusChanged(const Platoon* p)
 	}
 }
 
-
 void App::setUnitNodeScale(Ogre::SceneNode* n, const MilitaryUnit& m)
 {
 	float scale = 1.0f;
@@ -637,4 +662,25 @@ void App::setTargetArea(const Area2& area)
 	mTargetArea->end(); 
 	node->attachObject(mTargetArea);
 }
+
+void App::setSelectedUnit(Ogre::Entity* e)
+{
+	int entityid;
+	if(sscanf(e->getName().c_str(), "Platoon%d", &entityid) == 1) {
+		Entity* en = EntityManager::instance().getEntity(entityid);
+		if(en) {
+			Platoon* p = dynamic_cast<Platoon*>(en);
+			if(p) {
+				auto prevsel = mSelectedUnits;
+				mSelectedUnits.clear();
+				for(auto& m : prevsel) {
+					updateUnitMaterial(*m.first, m.second);
+				}
+				mSelectedUnits.push_back(std::pair<MilitaryUnit*, Ogre::Entity*>(p, e));
+				updateUnitMaterial(*p, e);
+			}
+		}
+	}
+}
+
 

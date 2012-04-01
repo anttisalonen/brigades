@@ -45,6 +45,8 @@ class App : public OIS::KeyListener, public OIS::MouseListener, public PapayaEve
 		bool humanControlled(const MilitaryUnit* m) const;
 		bool unitSelected(const MilitaryUnit* m) const;
 		void setupHumanControls();
+		void setSelectedUnit(Ogre::Entity* e);
+		void updateUnitMaterial(const MilitaryUnit& m, Ogre::Entity* ent);
 
 		struct UnitDrawInfo {
 			UnitDrawInfo(Ogre::SceneNode* node)
@@ -97,10 +99,10 @@ class App : public OIS::KeyListener, public OIS::MouseListener, public PapayaEve
 		Vector2 mLineEnd;
 		unsigned int mTimeScale;
 		std::list<std::pair<MilitaryUnit*, std::shared_ptr<GUIController>>> mControlledUnits;
-		std::list<MilitaryUnit*> mSelectedUnits;
+		std::list<std::pair<MilitaryUnit*, Ogre::Entity*>> mSelectedUnits;
+		std::shared_ptr<MilitaryUnit> mOwnUnit;
 		bool mObserver;
 		Ogre::ManualObject* mTargetArea;
-		static float mLineHeight;
 };
 
 #endif
