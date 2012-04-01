@@ -11,6 +11,8 @@
 #include "Papaya.h"
 #include "Messaging.h"
 
+class GUIController;
+
 class App : public OIS::KeyListener, public OIS::MouseListener, public PapayaEventListener, public WorldEntity {
 	public:
 		App();
@@ -23,6 +25,7 @@ class App : public OIS::KeyListener, public OIS::MouseListener, public PapayaEve
 		bool mouseMoved(const OIS::MouseEvent& arg);
 		bool mousePressed(const OIS::MouseEvent& arg, OIS::MouseButtonID button);
 		bool mouseReleased(const OIS::MouseEvent& arg, OIS::MouseButtonID button);
+		void setTargetArea(const Area2& area);
 	private:
 		void initResources();
 		void initInput();
@@ -38,6 +41,10 @@ class App : public OIS::KeyListener, public OIS::MouseListener, public PapayaEve
 		void updateUnitPosition(const MilitaryUnit* m, Vector2 pos);
 		void setUnitNodeScale(Ogre::SceneNode* n, const MilitaryUnit& m);
 		bool checkWindowResize();
+		std::string getUnitMaterialName(const MilitaryUnit& m) const;
+		bool humanControlled(const MilitaryUnit* m) const;
+		bool unitSelected(const MilitaryUnit* m) const;
+		void setupHumanControls();
 
 		struct UnitDrawInfo {
 			UnitDrawInfo(Ogre::SceneNode* node)
@@ -89,6 +96,11 @@ class App : public OIS::KeyListener, public OIS::MouseListener, public PapayaEve
 		unsigned int mWindowHeight;
 		Vector2 mLineEnd;
 		unsigned int mTimeScale;
+		std::list<std::pair<MilitaryUnit*, std::shared_ptr<GUIController>>> mControlledUnits;
+		std::list<MilitaryUnit*> mSelectedUnits;
+		bool mObserver;
+		Ogre::ManualObject* mTargetArea;
+		static float mLineHeight;
 };
 
 #endif

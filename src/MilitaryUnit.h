@@ -33,6 +33,7 @@ template <class T>
 class Controller {
 	public:
 		Controller<T>(T* m) : mUnit(m) { }
+		~Controller<T>() { }
 		virtual bool control(float dt) = 0;
 		virtual void receiveMessage(const Message& m) = 0;
 	protected:
@@ -42,24 +43,28 @@ class Controller {
 class MilitaryUnit : public Entity {
 	public:
 		MilitaryUnit(MilitaryUnit* commandingunit, ServiceBranch b, int side);
+		~MilitaryUnit() { }
 		ServiceBranch getBranch() const;
 		int getSide() const;
 		virtual std::list<Platoon*> update(float dt);
 		virtual void receiveMessage(const Message& m);
 		virtual std::list<Platoon*> getPlatoons();
-		const std::vector<std::unique_ptr<MilitaryUnit>>& getUnits() const;
+		const std::vector<std::shared_ptr<MilitaryUnit>>& getUnits() const;
+		std::vector<std::shared_ptr<MilitaryUnit>>& getUnits();
 		virtual UnitSize getUnitSize() const = 0;
 		const MilitaryUnit* getCommandingUnit() const;
 		MilitaryUnit* getCommandingUnit();
 		virtual Vector2 getPosition() const;
 		float distanceTo(const MilitaryUnit& m) const;
+		void setController(std::shared_ptr<Controller<MilitaryUnit>> c);
 	protected:
 		Vector2 spawnUnitDisplacement() const;
 		MilitaryUnit* mCommandingUnit;
 		ServiceBranch mBranch;
 		int mSide;
-		std::vector<std::unique_ptr<MilitaryUnit>> mUnits;
-		std::unique_ptr<Controller<MilitaryUnit>> mController;
+		std::vector<std::shared_ptr<MilitaryUnit>> mUnits;
+	private:
+		std::shared_ptr<Controller<MilitaryUnit>> mController;
 };
 
 class Platoon : public MilitaryUnit {
@@ -73,7 +78,7 @@ class Platoon : public MilitaryUnit {
 		std::list<Platoon*> update(float dt);
 		void receiveMessage(const Message& m);
 		std::list<Platoon*> getPlatoons();
-		void setController(std::unique_ptr<Controller<Platoon>> c);
+		void setController(std::shared_ptr<Controller<Platoon>> c);
 		void loseHealth(float damage);
 		bool isDead() const;
 		float getHealth() const;
@@ -82,7 +87,7 @@ class Platoon : public MilitaryUnit {
 	private:
 		void checkVisibility();
 		Vector2 mPosition;
-		std::unique_ptr<Controller<Platoon>> mController;
+		std::shared_ptr<Controller<Platoon>> mController;
 		float mHealth;
 };
 

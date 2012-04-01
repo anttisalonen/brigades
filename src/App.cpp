@@ -3,10 +3,14 @@
 #endif
 #include <assert.h>
 
+#include <memory>
 #include <iostream>
 #include <exception>
 
 #include "App.h"
+#include "GUIController.h"
+
+static const float lineHeight = 0.51f;
 
 App::App()
 	: mUpVelocity(0),
@@ -17,7 +21,9 @@ App::App()
 	mUnitScaleChanged(true),
 	mWindowWidth(0),
 	mWindowHeight(0),
-	mTimeScale(1)
+	mTimeScale(1),
+	mObserver(false),
+	mTargetArea(nullptr)
 {
 	Papaya::instance().setup(&mTerrain);
 	// get user data directory
@@ -78,6 +84,8 @@ App::App()
 		createTerrain();
 		Papaya::instance().addEventListener(this);
 		MessageDispatcher::instance().registerWorldEntity(this);
+		if(!mObserver)
+			setupHumanControls();
 
 		mRunning = true;
 	}
@@ -90,6 +98,22 @@ App::~App()
 	mScene->destroyAllCameras();
 	mScene->destroyAllEntities();
 	mRootNode->removeAndDestroyAllChildren();
+}
+
+void App::setupHumanControls()
+{
+	std::shared_ptr<Army> a = Papaya::instance().getArmy(0);
+	if(a) {
+		std::shared_ptr<MilitaryUnit> m = a->getUnits().at(0);
+		for(int i = 0; i < 2; i++) {
+			m = m->getUnits().at(0);
+		}
+		std::shared_ptr<GUIController> c(new GUIController(this, m.get()));
+		m->setController(c);
+		for(auto& p : m->getPlatoons()) {
+			mControlledUnits.push_back(std::pair<MilitaryUnit*, std::shared_ptr<GUIController>>(p, c));
+		}
+	}
 }
 
 #define APP_RESOURCE_NAME "Resources"
@@ -412,8 +436,8 @@ bool App::mousePressed(const OIS::MouseEvent& arg, OIS::MouseButtonID button)
 			mLineEnd.y = point.y;
 			std::cout << "Point at " << mLineEnd << "\n";
 			mLineObject->beginUpdate(0);
-			mLineObject->position(0, 0, 2); 
-			mLineObject->position(mLineEnd.x, mLineEnd.y, 2); 
+			mLineObject->position(0, 0, lineHeight); 
+			mLineObject->position(mLineEnd.x, mLineEnd.y, lineHeight); 
 			mLineObject->end(); 
 		}
 	}
@@ -442,11 +466,9 @@ Ogre::Entity* App::createUnitNode(const MilitaryUnit& m)
 	const std::string unitsize(unitSizeToName(m.getUnitSize()));
 	const std::string unittype(branchToName(m.getBranch()));
 	std::ostringstream ss;
-	std::ostringstream materialstr;
 	ss << unitsize << m.getEntityID();
 	Ogre::Entity* unitEnt = mScene->createEntity(ss.str(), "UnitMesh");
-	materialstr << unittype << unitsize << m.getSide();
-	std::string materialname = materialstr.str();
+	std::string materialname = getUnitMaterialName(m);
 	Ogre::MaterialPtr material = Ogre::MaterialManager::getSingleton().getByName(materialname,
 			APP_RESOURCE_NAME);
 	if(material.isNull()) {
@@ -464,9 +486,42 @@ Ogre::Entity* App::createUnitNode(const MilitaryUnit& m)
 		Ogre::TextureUnitState* t2 = material->getTechnique(0)->getPass(0)->createTextureUnitState(texturename2);
 		t2->setColourOperation(Ogre::LBO_ALPHA_BLEND);
 		t2->setAlphaOperation(Ogre::LBX_ADD);
+		if(humanControlled(&m)) {
+			Ogre::TextureUnitState* t3 = material->getTechnique(0)->getPass(0)->createTextureUnitState();
+			t3->setColourOperationEx(Ogre::LBX_MODULATE, Ogre::LBS_MANUAL, Ogre::LBS_CURRENT,
+					Ogre::ColourValue(1.0, 0.5, 0.5, 1.0));
+		}
+		if(unitSelected(&m)) {
+			Ogre::TextureUnitState* t4 = material->getTechnique(0)->getPass(0)->createTextureUnitState("Spot.png");
+			t4->setColourOperation(Ogre::LBO_ALPHA_BLEND);
+			t4->setAlphaOperation(Ogre::LBX_ADD);
+		}
 	}
 	unitEnt->setMaterialName(materialname);
 	return unitEnt;
+}
+
+bool App::humanControlled(const MilitaryUnit* m) const
+{
+	return std::find_if(mControlledUnits.begin(), mControlledUnits.end(),
+			[=](const std::pair<MilitaryUnit*, std::shared_ptr<GUIController>>& m1) { return m1.first == m; })
+		!= mControlledUnits.end();
+}
+
+bool App::unitSelected(const MilitaryUnit* m) const
+{
+	return std::find(mSelectedUnits.begin(), mSelectedUnits.end(), m) != mSelectedUnits.end();
+}
+
+std::string App::getUnitMaterialName(const MilitaryUnit& m) const
+{
+	const std::string unitsize(unitSizeToName(m.getUnitSize()));
+	const std::string unittype(branchToName(m.getBranch()));
+	std::ostringstream ss;
+	std::ostringstream materialstr;
+	ss << unitsize << m.getEntityID();
+	materialstr << unittype << unitsize << m.getSide() << (humanControlled(&m) ? "Human" : "") << (unitSelected(&m) ? "Selected" : "");
+	return materialstr.str();
 }
 
 void App::updateUnitPosition(const MilitaryUnit* m, Vector2 pos)
@@ -563,3 +618,23 @@ void App::setUnitNodeScale(Ogre::SceneNode* n, const MilitaryUnit& m)
 	}
 	n->setScale(scale, scale, 1.0f);
 }
+
+void App::setTargetArea(const Area2& area)
+{
+	Ogre::SceneNode* node = mScene->getRootSceneNode()->createChildSceneNode("Target Area Line"); 
+	if(!mTargetArea) {
+		mTargetArea = mScene->createManualObject("Target Area");
+		mTargetArea->begin("LineMaterial", Ogre::RenderOperation::OT_LINE_STRIP); 
+	}
+	else {
+		mTargetArea->beginUpdate(0);
+	}
+	mTargetArea->position(area.x1, area.y1, lineHeight); 
+	mTargetArea->position(area.x1, area.y2, lineHeight); 
+	mTargetArea->position(area.x2, area.y2, lineHeight); 
+	mTargetArea->position(area.x2, area.y1, lineHeight); 
+	mTargetArea->position(area.x1, area.y1, lineHeight); 
+	mTargetArea->end(); 
+	node->attachObject(mTargetArea);
+}
+

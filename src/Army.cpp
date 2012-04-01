@@ -6,16 +6,20 @@ Army::Army(const Terrain& t, const Vector2& base, int side,
 		const std::vector<ServiceBranch>& armyConfiguration)
 	: MilitaryUnit(nullptr, ServiceBranch::Infantry, side),
 	mTerrain(t),
-	mBase(base)
+	mBase(base),
+	mSentAttackMessage(false)
 {
 	mUnits.push_back(std::unique_ptr<Brigade>(new Brigade(this, mBase, ServiceBranch::Infantry, mSide, armyConfiguration)));
-	MessageDispatcher::instance().dispatchMessage(Message(mEntityID, mUnits[0]->getEntityID(),
-				0.0f, 0.0f, MessageType::ClaimArea, MessageData(Area2(0, 0, mTerrain.getWidth(), mTerrain.getWidth()))));
 }
 
-EntityID Entity::getEntityID() const
+std::list<Platoon*> Army::update(float dt)
 {
-	return mEntityID;
+	if(!mSentAttackMessage) {
+		MessageDispatcher::instance().dispatchMessage(Message(mEntityID, mUnits[0]->getEntityID(),
+					0.0f, 0.0f, MessageType::ClaimArea, MessageData(Area2(0, 0, mTerrain.getWidth(), mTerrain.getWidth()))));
+		mSentAttackMessage = true;
+	}
+	return MilitaryUnit::update(dt);
 }
 
 const char* branchToName(ServiceBranch b)

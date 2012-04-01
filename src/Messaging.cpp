@@ -23,6 +23,11 @@ Entity::Entity()
 	mEntityID = EntityManager::instance().registerEntity(this);
 }
 
+EntityID Entity::getEntityID() const
+{
+	return mEntityID;
+}
+
 EntityManager::EntityManager()
 	: mNextEntityID(1000)
 {

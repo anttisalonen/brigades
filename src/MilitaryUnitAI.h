@@ -11,7 +11,7 @@ class MilitaryUnitAIController : public Controller<MilitaryUnit> {
 		virtual void receiveMessage(const Message& m);
 		virtual bool control(float dt);
 	protected:
-		std::vector<MilitaryUnit*> getCombatUnits() const;
+		std::vector<std::shared_ptr<MilitaryUnit>> getCombatUnits() const;
 		void attackPlatoon(Platoon* p);
 		bool mInCombat;
 };

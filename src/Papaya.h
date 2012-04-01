@@ -19,8 +19,8 @@ class Papaya {
 		Papaya();
 		void setup(const Terrain* t);
 		void process(float dt);
-		const Army* getArmy(size_t side) const;
-		Army* getArmy(size_t side);
+		const std::shared_ptr<Army> getArmy(size_t side) const;
+		std::shared_ptr<Army> getArmy(size_t side);
 		void addEventListener(PapayaEventListener* l);
 		void removeEventListener(PapayaEventListener* l);
 		static Papaya& instance();
@@ -28,7 +28,7 @@ class Papaya {
 		float getCurrentTime() const;
 	private:
 		const Terrain* mTerrain;
-		std::vector<std::unique_ptr<Army>> mArmies;
+		std::vector<std::shared_ptr<Army>> mArmies;
 		std::vector<PapayaEventListener*> mListeners;
 		float mTime;
 };

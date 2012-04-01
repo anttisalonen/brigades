@@ -28,6 +28,8 @@ struct Area2 {
 		: x1(x1_), y1(y1_), x2(x2_), y2(y2_) { }
 };
 
+std::ostream& operator<<(std::ostream& out, const Area2& a);
+
 class Terrain {
 	public:
 		Terrain();

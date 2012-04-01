@@ -14,7 +14,7 @@ Platoon::Platoon(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch
 	mController(nullptr),
 	mHealth(100.0f)
 {
-	mController = std::unique_ptr<Controller<Platoon>>(new PlatoonAIController(this));
+	mController = std::shared_ptr<Controller<Platoon>>(new PlatoonAIController(this));
 }
 
 ServiceBranch Platoon::getBranch() const
@@ -59,15 +59,15 @@ void Platoon::receiveMessage(const Message& m)
 	mController->receiveMessage(m);
 }
 
-void Platoon::setController(std::unique_ptr<Controller<Platoon>> c)
+void Platoon::setController(std::shared_ptr<Controller<Platoon>> c)
 {
-	mController.swap(c);
+	mController = c;
 }
 
 void Platoon::checkVisibility()
 {
 	size_t enemyside = getSide() == 1 ? 1 : 0;
-	Army* enemyarmy = Papaya::instance().getArmy(enemyside);
+	std::shared_ptr<Army> enemyarmy = Papaya::instance().getArmy(enemyside);
 	if(enemyarmy) {
 		std::list<Platoon*> enemyplatoons = enemyarmy->getPlatoons();
 		for(auto ep : enemyplatoons) {
@@ -144,7 +144,7 @@ MilitaryUnit::MilitaryUnit(MilitaryUnit* commandingunit, ServiceBranch b, int si
 	mSide(side),
 	mController(nullptr)
 {
-	mController = std::unique_ptr<Controller<MilitaryUnit>>(new MilitaryUnitAIController(this));
+	mController = std::shared_ptr<Controller<MilitaryUnit>>(new MilitaryUnitAIController(this));
 }
 
 const MilitaryUnit* MilitaryUnit::getCommandingUnit() const
@@ -157,7 +157,12 @@ MilitaryUnit* MilitaryUnit::getCommandingUnit()
 	return mCommandingUnit;
 }
 
-const std::vector<std::unique_ptr<MilitaryUnit>>& MilitaryUnit::getUnits() const
+const std::vector<std::shared_ptr<MilitaryUnit>>& MilitaryUnit::getUnits() const
+{
+	return mUnits;
+}
+
+std::vector<std::shared_ptr<MilitaryUnit>>& MilitaryUnit::getUnits()
 {
 	return mUnits;
 }
@@ -216,7 +221,7 @@ Company::Company(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch
 	: MilitaryUnit(commandingunit, b, side)
 {
 	for(int i = 0; i < 4; i++) {
-		mUnits.push_back(std::unique_ptr<Platoon>(new Platoon(this, pos + spawnUnitDisplacement(), mBranch, mSide)));
+		mUnits.push_back(std::shared_ptr<Platoon>(new Platoon(this, pos + spawnUnitDisplacement(), mBranch, mSide)));
 	}
 }
 
@@ -224,7 +229,7 @@ Battalion::Battalion(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBr
 	: MilitaryUnit(commandingunit, b, side)
 {
 	for(int i = 0; i < 4; i++) {
-		mUnits.push_back(std::unique_ptr<Company>(new Company(this, pos + spawnUnitDisplacement(), mBranch, mSide)));
+		mUnits.push_back(std::shared_ptr<Company>(new Company(this, pos + spawnUnitDisplacement(), mBranch, mSide)));
 	}
 }
 
@@ -232,7 +237,7 @@ Brigade::Brigade(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch
 	: MilitaryUnit(commandingunit, b, side)
 {
 	for(auto& br : config) {
-		mUnits.push_back(std::unique_ptr<Battalion>(new Battalion(this, pos + spawnUnitDisplacement(), br, mSide)));
+		mUnits.push_back(std::shared_ptr<Battalion>(new Battalion(this, pos + spawnUnitDisplacement(), br, mSide)));
 	}
 }
 
@@ -261,4 +266,10 @@ Vector2 MilitaryUnit::spawnUnitDisplacement() const
 		num = -num;
 	return Vector2(num % 2 * add, num / 2 * add);
 }
+
+void MilitaryUnit::setController(std::shared_ptr<Controller<MilitaryUnit>> c)
+{
+	mController = c;
+}
+
 

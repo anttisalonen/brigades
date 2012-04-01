@@ -17,7 +17,7 @@ void MilitaryUnitAIController::receiveMessage(const Message& m)
 	switch(m.mType) {
 		case MessageType::ClaimArea:
 			{
-				std::vector<MilitaryUnit*> combatUnits = getCombatUnits();
+				std::vector<std::shared_ptr<MilitaryUnit>> combatUnits = getCombatUnits();
 				float awidth = m.mData->area.x2 - m.mData->area.x1;
 				float aheight = m.mData->area.y2 - m.mData->area.y1;
 				std::vector<Area2> areas;
@@ -66,12 +66,12 @@ void MilitaryUnitAIController::receiveMessage(const Message& m)
 	}
 }
 
-std::vector<MilitaryUnit*> MilitaryUnitAIController::getCombatUnits() const
+std::vector<std::shared_ptr<MilitaryUnit>> MilitaryUnitAIController::getCombatUnits() const
 {
-	std::vector<MilitaryUnit*> combatUnits;
+	std::vector<std::shared_ptr<MilitaryUnit>> combatUnits;
 	for(auto& u : mUnit->getUnits()) {
 		if(isCombatBranch(u->getBranch()))
-			combatUnits.push_back(u.get());
+			combatUnits.push_back(u);
 	}
 	return combatUnits;
 }

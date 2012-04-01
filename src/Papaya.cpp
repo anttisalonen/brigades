@@ -52,8 +52,8 @@ void Papaya::setup(const Terrain* t)
 	armyConfiguration.push_back(ServiceBranch::Recon);
 	armyConfiguration.push_back(ServiceBranch::Signal);
 	armyConfiguration.push_back(ServiceBranch::Supply);
-	mArmies.push_back(std::unique_ptr<Army>(new Army(*mTerrain, base1, 1, armyConfiguration)));
-	mArmies.push_back(std::unique_ptr<Army>(new Army(*mTerrain, base2, 2, armyConfiguration)));
+	mArmies.push_back(std::shared_ptr<Army>(new Army(*mTerrain, base1, 1, armyConfiguration)));
+	mArmies.push_back(std::shared_ptr<Army>(new Army(*mTerrain, base2, 2, armyConfiguration)));
 }
 
 void Papaya::process(float dt)
@@ -70,17 +70,17 @@ void Papaya::process(float dt)
 	mTime += dt * 0.1f;
 }
 
-const Army* Papaya::getArmy(size_t side) const
+const std::shared_ptr<Army> Papaya::getArmy(size_t side) const
 {
 	return getArmy(side);
 }
 
-Army* Papaya::getArmy(size_t side)
+std::shared_ptr<Army> Papaya::getArmy(size_t side)
 {
 	if(side >= mArmies.size())
 		return nullptr;
 	else
-		return mArmies[side].get();
+		return mArmies[side];
 }
 
 void Papaya::addEventListener(PapayaEventListener* l)

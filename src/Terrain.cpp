@@ -9,6 +9,12 @@ std::ostream& operator<<(std::ostream& out, const Vector2& vec)
 	return out;
 }
 
+std::ostream& operator<<(std::ostream& out, const Area2& a)
+{
+	out << "(" << Vector2(a.x1, a.y1) << ", " << Vector2(a.x2, a.y2) << ")";
+	return out;
+}
+
 Vector2 Vector2::operator+(const Vector2& v2) const
 {
 	return Vector2(x + v2.x, y + v2.y);
