@@ -23,8 +23,7 @@ App::App()
 	mWindowHeight(0),
 	mTimeScale(1),
 	mOwnUnit(nullptr),
-	mObserver(false),
-	mTargetArea(nullptr)
+	mObserver(false)
 {
 	Papaya::instance().setup(&mTerrain);
 	// get user data directory
@@ -175,15 +174,6 @@ void App::createExtraMaterials()
 	lineMaterial->getTechnique(0)->getPass(0)->setDiffuse(0,0,1,0); 
 	lineMaterial->getTechnique(0)->getPass(0)->setAmbient(0,0,1); 
 	lineMaterial->getTechnique(0)->getPass(0)->setSelfIllumination(0,0,1); 
-
-	mLineObject = mScene->createManualObject("LineObject");
-	Ogre::SceneNode* node = mScene->getRootSceneNode()->createChildSceneNode("Line"); 
-
-	mLineObject->begin("LineMaterial", Ogre::RenderOperation::OT_LINE_LIST); 
-	mLineObject->position(0, 0, 0); 
-	mLineObject->position(0, 0, 0); 
-	mLineObject->end(); 
-	node->attachObject(mLineObject);
 }
 
 void App::createTexture(const std::string& name, size_t width, size_t height,
@@ -442,10 +432,10 @@ bool App::mousePressed(const OIS::MouseEvent& arg, OIS::MouseButtonID button)
 			mLineEnd.x = point.x;
 			mLineEnd.y = point.y;
 			std::cout << "Point at " << mLineEnd << "\n";
-			mLineObject->beginUpdate(0);
-			mLineObject->position(0, 0, lineHeight); 
-			mLineObject->position(mLineEnd.x, mLineEnd.y, lineHeight); 
-			mLineObject->end(); 
+			std::vector<Vector2> points;
+			points.push_back(Vector2(0, 0));
+			points.push_back(Vector2(mLineEnd.x, mLineEnd.y));
+			createLine("LineObject", points);
 		}
 	}
 	else if(button == OIS::MB_Right && intres.first) {
@@ -644,23 +634,46 @@ void App::setUnitNodeScale(Ogre::SceneNode* n, const MilitaryUnit& m)
 	n->setScale(scale, scale, 1.0f);
 }
 
-void App::setTargetArea(const Area2& area)
+void App::createLine(const std::string& name, const std::vector<Vector2>& points)
 {
-	Ogre::SceneNode* node = mScene->getRootSceneNode()->createChildSceneNode("Target Area Line"); 
-	if(!mTargetArea) {
-		mTargetArea = mScene->createManualObject("Target Area");
-		mTargetArea->begin("LineMaterial", Ogre::RenderOperation::OT_LINE_STRIP); 
+	Ogre::SceneNode* node;
+	Ogre::ManualObject* obj;
+	bool newobject = false;
+
+	if(!mScene->hasSceneNode(name)) {
+		node = mScene->getRootSceneNode()->createChildSceneNode(name); 
+		newobject = true;
 	}
 	else {
-		mTargetArea->beginUpdate(0);
+		node = mScene->getSceneNode(name); 
 	}
-	mTargetArea->position(area.x1, area.y1, lineHeight); 
-	mTargetArea->position(area.x1, area.y2, lineHeight); 
-	mTargetArea->position(area.x2, area.y2, lineHeight); 
-	mTargetArea->position(area.x2, area.y1, lineHeight); 
-	mTargetArea->position(area.x1, area.y1, lineHeight); 
-	mTargetArea->end(); 
-	node->attachObject(mTargetArea);
+	std::cout << "Node: " << node << "\n";
+	if(newobject) {
+		obj = mScene->createManualObject(name);
+		obj->begin("LineMaterial", Ogre::RenderOperation::OT_LINE_STRIP); 
+	}
+	else {
+		obj = mScene->getManualObject(name);
+		obj->beginUpdate(0);
+	}
+	std::cout << "Object: " << obj << "\n";
+	for(auto& p : points) {
+		obj->position(p.x, p.y, lineHeight);
+	}
+	obj->end(); 
+	if(newobject)
+		node->attachObject(obj);
+}
+
+void App::setTargetArea(const Area2& area)
+{
+	std::vector<Vector2> points;
+	points.push_back(Vector2(area.x1, area.y1));
+	points.push_back(Vector2(area.x1, area.y2));
+	points.push_back(Vector2(area.x2, area.y2));
+	points.push_back(Vector2(area.x2, area.y1));
+	points.push_back(Vector2(area.x1, area.y1));
+	createLine("Target Area Line", points);
 }
 
 void App::setSelectedUnit(Ogre::Entity* e)

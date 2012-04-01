@@ -47,6 +47,7 @@ class App : public OIS::KeyListener, public OIS::MouseListener, public PapayaEve
 		void setupHumanControls();
 		void setSelectedUnit(Ogre::Entity* e);
 		void updateUnitMaterial(const MilitaryUnit& m, Ogre::Entity* ent);
+		void createLine(const std::string& name, const std::vector<Vector2>& points);
 
 		struct UnitDrawInfo {
 			UnitDrawInfo(Ogre::SceneNode* node)
@@ -74,7 +75,6 @@ class App : public OIS::KeyListener, public OIS::MouseListener, public PapayaEve
 		Ogre::Viewport* mViewport;
 		Ogre::RaySceneQuery* mRaySceneQuery;
 		Ogre::Plane mTerrainPlane;
-		Ogre::ManualObject* mLineObject;
 
 		OIS::InputManager* mInputManager;
 		OIS::Keyboard* mKeyboard;
@@ -102,7 +102,7 @@ class App : public OIS::KeyListener, public OIS::MouseListener, public PapayaEve
 		std::list<std::pair<MilitaryUnit*, Ogre::Entity*>> mSelectedUnits;
 		std::shared_ptr<MilitaryUnit> mOwnUnit;
 		bool mObserver;
-		Ogre::ManualObject* mTargetArea;
+		std::map<MilitaryUnit*, Vector2> mOrderLines;
 };
 
 #endif
