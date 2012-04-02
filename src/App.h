@@ -50,6 +50,7 @@ class App : public OIS::KeyListener, public OIS::MouseListener, public PapayaEve
 		void createLine(const std::string& name, const std::vector<Vector2>& points);
 		void deleteLine(const std::string& name);
 		void updateCommandLines();
+		void focusOnControlledUnit(size_t index);
 
 		struct UnitDrawInfo {
 			UnitDrawInfo(Ogre::SceneNode* node)

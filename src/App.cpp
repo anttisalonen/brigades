@@ -69,7 +69,7 @@ App::App()
 		mCamera->setAspectRatio(float(mViewport->getActualWidth()) / float(mViewport->getActualHeight()));
 		mCamera->setNearClipDistance(1.5f);
 		mCamera->setFarClipDistance(3000.0f);
-		mCamera->setPosition(64, 64, 100.0f);
+		mCamNode->setPosition(64, 64, 50.0f);
 		mCamera->lookAt(64, 64, 0);
 
 		mRaySceneQuery = mScene->createRayQuery(Ogre::Ray());
@@ -86,6 +86,8 @@ App::App()
 		MessageDispatcher::instance().registerWorldEntity(this);
 		if(!mObserver)
 			setupHumanControls();
+
+		focusOnControlledUnit(0);
 
 		mRunning = true;
 	}
@@ -309,6 +311,7 @@ bool App::checkWindowResize()
 	if(mWindowWidth != mOldWidth || mWindowHeight != mOldHeight) {
 		mMouse->getMouseState().width = mWindowWidth;
 		mMouse->getMouseState().height = mWindowHeight;
+		mCamera->setAspectRatio(float(mViewport->getActualWidth()) / float(mViewport->getActualHeight()));
 		std::cout << "New window size: " << mWindowWidth << " x " << mWindowHeight << "\n";
 		return true;
 	}
@@ -367,21 +370,33 @@ bool App::keyPressed(const OIS::KeyEvent &arg)
 			updateTerrain();
 			break;
 		case OIS::KC_1:
+			focusOnControlledUnit(0);
+			break;
 		case OIS::KC_2:
+			focusOnControlledUnit(1);
+			break;
 		case OIS::KC_3:
+			focusOnControlledUnit(2);
+			break;
+		case OIS::KC_4:
+			focusOnControlledUnit(3);
+			break;
+		case OIS::KC_NUMPAD1:
+		case OIS::KC_NUMPAD2:
+		case OIS::KC_NUMPAD3:
 			mUnitScale = UnitSize::Platoon;
 			mUnitScaleChanged = true;
 			break;
-		case OIS::KC_4:
+		case OIS::KC_NUMPAD4:
 			mUnitScale = UnitSize::Company;
 			mUnitScaleChanged = true;
 			break;
-		case OIS::KC_5:
+		case OIS::KC_NUMPAD5:
 			mUnitScale = UnitSize::Battalion;
 			mUnitScaleChanged = true;
 			break;
-		case OIS::KC_6:
-		case OIS::KC_7:
+		case OIS::KC_NUMPAD6:
+		case OIS::KC_NUMPAD7:
 			mUnitScale = UnitSize::Brigade;
 			mUnitScaleChanged = true;
 			break;
@@ -730,4 +745,15 @@ void App::setSelectedUnit(Ogre::Entity* e)
 	}
 }
 
+void App::focusOnControlledUnit(size_t index)
+{
+	size_t i = 0;
+	for(auto it = mControlledUnits.begin(); it != mControlledUnits.end(); ++it, i++) {
+		if(i == index && !it->first->isDead()) {
+			mCamNode->setPosition(it->first->getPosition().x, it->first->getPosition().y,
+					mCamNode->getPosition().z);
+			return;
+		}
+	}
+}
 
