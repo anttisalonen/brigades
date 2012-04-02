@@ -48,6 +48,8 @@ class App : public OIS::KeyListener, public OIS::MouseListener, public PapayaEve
 		void setSelectedUnit(Ogre::Entity* e);
 		void updateUnitMaterial(const MilitaryUnit& m, Ogre::Entity* ent);
 		void createLine(const std::string& name, const std::vector<Vector2>& points);
+		void deleteLine(const std::string& name);
+		void updateCommandLines();
 
 		struct UnitDrawInfo {
 			UnitDrawInfo(Ogre::SceneNode* node)

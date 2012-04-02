@@ -275,6 +275,27 @@ void App::run()
 		mKeyboard->capture();
 		mMouse->capture();
 		mCamNode->translate(mRightVelocity, mUpVelocity, mForwardVelocity);
+		updateCommandLines();
+	}
+}
+
+void App::updateCommandLines()
+{
+	for(auto it = mOrderLines.begin(); it != mOrderLines.end(); ) {
+		std::stringstream linename;
+		linename << "Orders " << it->first->getEntityID();
+		if(it->first->isDead() || (it->first->getPosition() - it->second).length() < 0.8f) {
+			deleteLine(linename.str());
+			mOrderLines.erase(it++);
+			continue;
+		}
+		else {
+			std::vector<Vector2> points;
+			points.push_back(it->first->getPosition());
+			points.push_back(it->second);
+			createLine(linename.str(), points);
+			++it;
+		}
 	}
 }
 
@@ -433,10 +454,6 @@ bool App::mousePressed(const OIS::MouseEvent& arg, OIS::MouseButtonID button)
 			mLineEnd.x = point.x;
 			mLineEnd.y = point.y;
 			std::cout << "Point at " << mLineEnd << "\n";
-			std::vector<Vector2> points;
-			points.push_back(Vector2(0, 0));
-			points.push_back(Vector2(mLineEnd.x, mLineEnd.y));
-			createLine("LineObject", points);
 		}
 	}
 	else if(button == OIS::MB_Right && intres.first) {
@@ -447,6 +464,13 @@ bool App::mousePressed(const OIS::MouseEvent& arg, OIS::MouseButtonID button)
 				MessageDispatcher::instance().dispatchMessage(Message(mOwnUnit->getEntityID(),
 							pair.first->getEntityID(),
 							0.0f, 0.0f, MessageType::Goto, point));
+				std::stringstream linename;
+				linename << "Orders " << pair.first->getEntityID();
+				std::vector<Vector2> points;
+				points.push_back(pair.first->getPosition());
+				points.push_back(point);
+				createLine(linename.str(), points);
+				mOrderLines[pair.first] = point;
 			}
 		}
 	}
@@ -662,6 +686,17 @@ void App::createLine(const std::string& name, const std::vector<Vector2>& points
 	obj->end(); 
 	if(newobject)
 		node->attachObject(obj);
+}
+
+void App::deleteLine(const std::string& name)
+{
+	if(mScene->hasSceneNode(name)) {
+		Ogre::SceneNode* node = mScene->getSceneNode(name);
+		Ogre::ManualObject* obj = mScene->getManualObject(name);
+		node->detachObject(obj);
+		mScene->destroyManualObject(obj);
+		mScene->destroySceneNode(node);
+	}
 }
 
 void App::setTargetArea(const Area2& area)

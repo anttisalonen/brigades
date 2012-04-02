@@ -43,7 +43,7 @@ class Controller {
 class MilitaryUnit : public Entity {
 	public:
 		MilitaryUnit(MilitaryUnit* commandingunit, ServiceBranch b, int side);
-		~MilitaryUnit() { }
+		virtual ~MilitaryUnit() { }
 		ServiceBranch getBranch() const;
 		int getSide() const;
 		virtual std::list<Platoon*> update(float dt);
@@ -57,6 +57,8 @@ class MilitaryUnit : public Entity {
 		virtual Vector2 getPosition() const;
 		float distanceTo(const MilitaryUnit& m) const;
 		void setController(std::shared_ptr<Controller<MilitaryUnit>> c);
+		virtual bool isDead() const;
+		virtual float getHealth() const;
 	protected:
 		Vector2 spawnUnitDisplacement() const;
 		MilitaryUnit* mCommandingUnit;

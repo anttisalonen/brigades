@@ -133,9 +133,27 @@ bool Platoon::isDead() const
 	return mHealth <= 0.0f;
 }
 
+bool MilitaryUnit::isDead() const
+{
+	for(auto& p : mUnits) {
+		if(!p->isDead())
+			return false;
+	}
+	return true;
+}
+
+float MilitaryUnit::getHealth() const
+{
+	float h = 0.0f;
+	for(auto& p : mUnits) {
+		h += p->getHealth();
+	}
+	return h;
+}
+
 float Platoon::getHealth() const
 {
-	return mHealth;
+	return std::max(0.0f, mHealth);
 }
 
 MilitaryUnit::MilitaryUnit(MilitaryUnit* commandingunit, ServiceBranch b, int side)
