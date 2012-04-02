@@ -647,7 +647,6 @@ void App::createLine(const std::string& name, const std::vector<Vector2>& points
 	else {
 		node = mScene->getSceneNode(name); 
 	}
-	std::cout << "Node: " << node << "\n";
 	if(newobject) {
 		obj = mScene->createManualObject(name);
 		obj->begin("LineMaterial", Ogre::RenderOperation::OT_LINE_STRIP); 
@@ -656,7 +655,6 @@ void App::createLine(const std::string& name, const std::vector<Vector2>& points
 		obj = mScene->getManualObject(name);
 		obj->beginUpdate(0);
 	}
-	std::cout << "Object: " << obj << "\n";
 	for(auto& p : points) {
 		obj->position(p.x, p.y, lineHeight);
 	}
