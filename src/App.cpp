@@ -316,27 +316,28 @@ void App::setupUnitDisplay()
 
 bool App::keyPressed(const OIS::KeyEvent &arg)
 {
+	static const float movevel = 0.5f;
 	switch(arg.key) {
 		case OIS::KC_ESCAPE:
 			mRunning = false;
 			break;
 		case OIS::KC_UP:
-			mUpVelocity = 0.1f;
+			mUpVelocity = movevel;
 			break;
 		case OIS::KC_DOWN:
-			mUpVelocity = -0.1f;
+			mUpVelocity = -movevel;
 			break;
 		case OIS::KC_PGUP:
-			mForwardVelocity = 0.5f;
+			mForwardVelocity = movevel;
 			break;
 		case OIS::KC_PGDOWN:
-			mForwardVelocity = -0.5f;
+			mForwardVelocity = -movevel;
 			break;
 		case OIS::KC_RIGHT:
-			mRightVelocity = 0.1f;
+			mRightVelocity = movevel;
 			break;
 		case OIS::KC_LEFT:
-			mRightVelocity = -0.1f;
+			mRightVelocity = -movevel;
 			break;
 		case OIS::KC_M:
 			mMapRenderType++;
