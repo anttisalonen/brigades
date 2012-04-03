@@ -6,8 +6,10 @@ class Clock {
 		Clock();
 		void limitFPS(int fps);
 	private:
-		float getTime() const;
-		float mLastTime;
+		double getTime() const;
+		double mLastTime;
+		double mStatTime;
+		int mFrames;
 };
 
 #endif

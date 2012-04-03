@@ -50,7 +50,7 @@ App::App()
 		mRoot->initialise(false, "", "");
 		Ogre::NameValuePairList params;
 		params["FSAA"] = "0";
-		params["vsync"] = "true";
+		params["vsync"] = "false";
 		params["border"] = "fixed";
 		mWindowWidth = 800;
 		mWindowHeight = 600;
