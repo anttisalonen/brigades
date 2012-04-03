@@ -10,6 +10,7 @@
 #include "Terrain.h"
 #include "Papaya.h"
 #include "Messaging.h"
+#include "Clock.h"
 
 class GUIController;
 
@@ -106,6 +107,7 @@ class App : public OIS::KeyListener, public OIS::MouseListener, public PapayaEve
 		std::shared_ptr<MilitaryUnit> mOwnUnit;
 		bool mObserver;
 		std::map<MilitaryUnit*, Vector2> mOrderLines;
+		Clock mClock;
 };
 
 #endif

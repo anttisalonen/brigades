@@ -278,6 +278,7 @@ void App::run()
 		mMouse->capture();
 		mCamNode->translate(mRightVelocity, mUpVelocity, mForwardVelocity);
 		updateCommandLines();
+		mClock.limitFPS(60);
 	}
 }
 
