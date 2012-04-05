@@ -443,23 +443,43 @@ bool App::mouseMoved(const OIS::MouseEvent& arg)
 	return true;
 }
 
+std::pair<bool, Ogre::Real> rayPlaneIntersection(const Ogre::Plane& plane,
+		const Ogre::Ray& ray)
+{
+	using namespace Ogre;
+	Real denom = plane.normal.dotProduct(ray.getDirection());
+	if (Math::Abs(denom) < std::numeric_limits<Real>::epsilon())
+	{   
+		// Parallel
+		return std::pair<bool, Real>(false, 0);
+	}
+	else
+	{   
+		Real nom = plane.normal.dotProduct(ray.getOrigin()) + plane.d;
+		Real t = -(nom/denom);
+		return std::pair<bool, Real>(t >= 0, t);
+	}
+}
+
 bool App::mousePressed(const OIS::MouseEvent& arg, OIS::MouseButtonID button)
 {
 	Ogre::Ray mouseRay = mCamera->getCameraToViewportRay(arg.state.X.abs / float(arg.state.width),
 			arg.state.Y.abs / float(arg.state.height));
-	std::pair<bool, Ogre::Real> intres = mouseRay.intersects(mTerrainPlane);
+	mRaySceneQuery->setRay(mouseRay);
+	mRaySceneQuery->setSortByDistance(true);
+	Ogre::RaySceneQueryResult& result = mRaySceneQuery->execute();
+
 	Vector2 point;
 	Ogre::Vector3 ogrepoint;
+	// Calling mouseRay.intersects(mTerrainPlane) returns invalid results with g++ 4.7.0.
+	// So copy the implementation from OGRE here and call that instead, which works. Weird.
+	std::pair<bool, float> intres = rayPlaneIntersection(mTerrainPlane, mouseRay);
 	if(intres.first) {
 		ogrepoint = mouseRay.getPoint(intres.second);
 		point = Vector2(ogrepoint.x, ogrepoint.y);
-		std::cout << "Point at " << point << "\n";
 	}
 
 	if(button == OIS::MB_Left) {
-		mRaySceneQuery->setRay(mouseRay);
-		mRaySceneQuery->setSortByDistance(true);
-		Ogre::RaySceneQueryResult& result = mRaySceneQuery->execute();
 		for (Ogre::RaySceneQueryResult::iterator itr = result.begin(); itr != result.end(); itr++) {
 			// Is this result a MovableObject?
 			if (itr->movable && itr->movable->getName() != std::string("Camera"))
