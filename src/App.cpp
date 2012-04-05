@@ -448,6 +448,13 @@ bool App::mousePressed(const OIS::MouseEvent& arg, OIS::MouseButtonID button)
 	Ogre::Ray mouseRay = mCamera->getCameraToViewportRay(arg.state.X.abs / float(arg.state.width),
 			arg.state.Y.abs / float(arg.state.height));
 	std::pair<bool, Ogre::Real> intres = mouseRay.intersects(mTerrainPlane);
+	Vector2 point;
+	Ogre::Vector3 ogrepoint;
+	if(intres.first) {
+		ogrepoint = mouseRay.getPoint(intres.second);
+		point = Vector2(ogrepoint.x, ogrepoint.y);
+		std::cout << "Point at " << point << "\n";
+	}
 
 	if(button == OIS::MB_Left) {
 		mRaySceneQuery->setRay(mouseRay);
@@ -464,19 +471,10 @@ bool App::mousePressed(const OIS::MouseEvent& arg, OIS::MouseButtonID button)
 				}
 			}
 		}
-
-		if(intres.first) {
-			Ogre::Vector3 point = mouseRay.getPoint(intres.second);
-			mLineEnd.x = point.x;
-			mLineEnd.y = point.y;
-			std::cout << "Point at " << mLineEnd << "\n";
-		}
 	}
 	else if(button == OIS::MB_Right && intres.first) {
 		for(auto& pair : mSelectedUnits) {
 			if(humanControlled(pair.first)) {
-				Ogre::Vector3 op = mouseRay.getPoint(intres.second);
-				Vector2 point = Vector2(op.x, op.y);
 				MessageDispatcher::instance().dispatchMessage(Message(mOwnUnit->getEntityID(),
 							pair.first->getEntityID(),
 							0.0f, 0.0f, MessageType::Goto, point));
