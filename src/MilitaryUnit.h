@@ -4,6 +4,7 @@
 #include <list>
 
 #include "Messaging.h"
+#include "Steering.h"
 
 class Platoon;
 
@@ -38,6 +39,13 @@ class Controller {
 		virtual void receiveMessage(const Message& m) = 0;
 	protected:
 		T* mUnit;
+};
+
+class PlatoonController : public Controller<Platoon> {
+	public:
+		PlatoonController(Platoon* m) : Controller<Platoon>(m), mSteering(Steering(m)) { }
+	protected:
+		Steering mSteering;
 };
 
 class MilitaryUnit : public Entity {
@@ -91,6 +99,7 @@ class Platoon : public MilitaryUnit {
 		Vector2 mPosition;
 		std::shared_ptr<Controller<Platoon>> mController;
 		float mHealth;
+		float mVisibilityCheckDelay;
 };
 
 class Company : public MilitaryUnit {

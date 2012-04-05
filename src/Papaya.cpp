@@ -7,7 +7,8 @@
 static const float maximum_tank_vegetation = 0.2f;
 
 Papaya::Papaya()
-	: mTime(100)
+	: mTime(100),
+	mPlatoonCells(1, 1)
 {
 }
 
@@ -54,6 +55,7 @@ void Papaya::setup(const Terrain* t)
 	armyConfiguration.push_back(ServiceBranch::Supply);
 	mArmies.push_back(std::shared_ptr<Army>(new Army(*mTerrain, base1, 1, armyConfiguration)));
 	mArmies.push_back(std::shared_ptr<Army>(new Army(*mTerrain, base2, 2, armyConfiguration)));
+	mPlatoonCells = CellPartitioning<Platoon*>(mTerrain->getWidth(), 16);
 }
 
 void Papaya::process(float dt)
@@ -118,4 +120,22 @@ float Papaya::getCurrentTime() const
 	return mTime;
 }
 
+Platoon* Papaya::getNeighbouringPlatoons(Platoon* p, float range)
+{
+	mPlatoonCells.getNeighbouringEntities(p, range);
+	return getNextNeighbouringPlatoon();
+}
+
+Platoon* Papaya::getNextNeighbouringPlatoon()
+{
+	if(mPlatoonCells.hasNextNeighbouringEntity())
+		return mPlatoonCells.getNextNeighbouringEntity();
+	else
+		return nullptr;
+}
+
+void Papaya::updateEntityPosition(Platoon* p, const Vector2& oldpos)
+{
+	mPlatoonCells.updateEntity(p, oldpos);
+}
 

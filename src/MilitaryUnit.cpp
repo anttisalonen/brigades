@@ -12,7 +12,8 @@ Platoon::Platoon(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch
 	: MilitaryUnit(commandingunit, b, side),
 	mPosition(pos),
 	mController(nullptr),
-	mHealth(100.0f)
+	mHealth(100.0f),
+	mVisibilityCheckDelay(0.0f)
 {
 	mController = std::shared_ptr<Controller<Platoon>>(new PlatoonAIController(this));
 }
@@ -27,11 +28,17 @@ std::list<Platoon*> Platoon::update(float dt)
 	if(isDead()) {
 		return std::list<Platoon*>();
 	}
-	checkVisibility();
-	if(mController->control(dt))
+	mVisibilityCheckDelay -= dt;
+	if(mVisibilityCheckDelay <= 0.0f) {
+		mVisibilityCheckDelay = 1.0f;
+		checkVisibility();
+	}
+	if(mController->control(dt)) {
 		return std::list<Platoon*>(1, this);
-	else
+	}
+	else {
 		return std::list<Platoon*>();
+	}
 }
 
 std::list<Platoon*> Platoon::getPlatoons()
@@ -66,21 +73,13 @@ void Platoon::setController(std::shared_ptr<Controller<Platoon>> c)
 
 void Platoon::checkVisibility()
 {
-	size_t enemyside = getSide() == 1 ? 1 : 0;
-	std::shared_ptr<Army> enemyarmy = Papaya::instance().getArmy(enemyside);
-	if(enemyarmy) {
-		std::list<Platoon*> enemyplatoons = enemyarmy->getPlatoons();
-		for(auto ep : enemyplatoons) {
-			if(!ep->isDead()) {
-				if((getPosition() - ep->getPosition()).length() < 4.0f) {
-					MessageDispatcher::instance().dispatchMessage(Message(mEntityID, mEntityID,
-								0.0f, 0.0f, MessageType::EnemyDiscovered, ep));
-				}
-			}
+	for(Platoon* p = Papaya::instance().getNeighbouringPlatoons(this, 4.0f);
+			p != nullptr;
+			p = Papaya::instance().getNextNeighbouringPlatoon()) {
+		if(p->getSide() != getSide() && !p->isDead()) {
+			MessageDispatcher::instance().dispatchMessage(Message(mEntityID, mEntityID,
+						0.0f, 0.0f, MessageType::EnemyDiscovered, p));
 		}
-	}
-	else {
-		std::cerr << "No enemy army found?\n";
 	}
 }
 
@@ -115,7 +114,9 @@ void Platoon::moveTowards(const Vector2& v, float dt)
 	Vector2 velvec = diffvec.normalized();
 	velvec *= 0.1f * dt * Papaya::instance().getPlatoonSpeed(*this);
 	velvec += getPosition();
+	Vector2 oldpos = getPosition();
 	setPosition(velvec);
+	Papaya::instance().updateEntityPosition(this, oldpos);
 }
 
 void Platoon::loseHealth(float damage)

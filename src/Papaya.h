@@ -8,6 +8,7 @@
 #include "Terrain.h"
 #include "Messaging.h"
 #include "Army.h"
+#include "CellPartitioning.h"
 
 class PapayaEventListener {
 	public:
@@ -26,11 +27,15 @@ class Papaya {
 		static Papaya& instance();
 		float getPlatoonSpeed(const Platoon& p) const;
 		float getCurrentTime() const;
+		Platoon* getNeighbouringPlatoons(Platoon* p, float range);
+		Platoon* getNextNeighbouringPlatoon();
+		void updateEntityPosition(Platoon* p, const Vector2& oldpos);
 	private:
 		const Terrain* mTerrain;
 		std::vector<std::shared_ptr<Army>> mArmies;
 		std::vector<PapayaEventListener*> mListeners;
 		float mTime;
+		CellPartitioning<Platoon*> mPlatoonCells;
 };
 
 #endif

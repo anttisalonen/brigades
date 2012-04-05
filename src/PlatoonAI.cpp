@@ -5,7 +5,7 @@
 #include "Army.h"
 
 PlatoonAIController::PlatoonAIController(Platoon* p)
-	: Controller<Platoon>(p)
+	: PlatoonController(p)
 {
 	mControllerStack.push(std::unique_ptr<PlatoonAIState>(new PlatoonAIDefendState(mUnit, this)));
 }
@@ -35,7 +35,7 @@ void PlatoonAIController::popController()
 }
 
 PlatoonAIState::PlatoonAIState(Platoon* p, PlatoonAIController* c)
-	: Controller<Platoon>(p),
+	: PlatoonController(p),
 	mAIController(c)
 {
 }
@@ -142,10 +142,14 @@ PlatoonAICombatState::PlatoonAICombatState(Platoon* p, PlatoonAIController* c, P
 	: PlatoonAIState(p, c),
 	mEnemyPlatoon(ep)
 {
+	mSteering.clear();
+	mSteering.setSeek(ep->getPosition());
 }
 
 bool PlatoonAICombatState::control(float dt)
 {
+	//mSteering.setSeek(mEnemyPlatoon->getPosition());
+	//Vector2 targetvec = mSteering.steer();
 	Vector2 targetPos = mEnemyPlatoon->getPosition();
 	Vector2 diffvec = targetPos - mUnit->getPosition();
 	if(diffvec.length() > 1.0f) {
