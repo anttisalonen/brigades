@@ -91,13 +91,15 @@ PlatoonAIMoveState::PlatoonAIMoveState(Platoon* p, PlatoonAIController* c, const
 	: PlatoonAIState(p, c),
 	mTargetPos(t)
 {
+	mSteering.clear();
+	mSteering.setSeek(t);
 }
 
 bool PlatoonAIMoveState::control(float dt)
 {
-	Vector2 diffvec = mTargetPos - mUnit->getPosition();
+	Vector2 diffvec = mSteering.steer();
 	if(diffvec.length() > 0.5) {
-		mUnit->moveTowards(mTargetPos, dt);
+		mUnit->moveTowards(diffvec, dt);
 	}
 	else {
 		mAIController->pushController(std::unique_ptr<PlatoonAIState>(new PlatoonAIDefendState(mUnit, mAIController)));
@@ -148,12 +150,10 @@ PlatoonAICombatState::PlatoonAICombatState(Platoon* p, PlatoonAIController* c, P
 
 bool PlatoonAICombatState::control(float dt)
 {
-	//mSteering.setSeek(mEnemyPlatoon->getPosition());
-	//Vector2 targetvec = mSteering.steer();
-	Vector2 targetPos = mEnemyPlatoon->getPosition();
-	Vector2 diffvec = targetPos - mUnit->getPosition();
+	mSteering.setSeek(mEnemyPlatoon->getPosition());
+	Vector2 diffvec = mSteering.steer();
 	if(diffvec.length() > 1.0f) {
-		mUnit->moveTowards(targetPos, dt);
+		mUnit->moveTowards(diffvec, dt);
 	}
 	else {
 		float damage = dt * (rand() % 100) * 0.01f;

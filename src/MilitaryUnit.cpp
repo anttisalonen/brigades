@@ -110,8 +110,7 @@ UnitSize Army::getUnitSize() const
 
 void Platoon::moveTowards(const Vector2& v, float dt)
 {
-	Vector2 diffvec = v - getPosition();
-	Vector2 velvec = diffvec.normalized();
+	Vector2 velvec = v.normalized();
 	velvec *= 0.1f * dt * Papaya::instance().getPlatoonSpeed(*this);
 	velvec += getPosition();
 	Vector2 oldpos = getPosition();
