@@ -110,7 +110,11 @@ UnitSize Army::getUnitSize() const
 
 void Platoon::moveTowards(const Vector2& v, float dt)
 {
-	Vector2 velvec = v.normalized();
+	Vector2 velvec;
+	if(v.length() > 1.0f)
+		velvec = v.normalized();
+	else
+		velvec = v;
 	velvec *= 0.1f * dt * Papaya::instance().getPlatoonSpeed(*this);
 	velvec += getPosition();
 	Vector2 oldpos = getPosition();
@@ -239,7 +243,9 @@ Company::Company(MilitaryUnit* commandingunit, const Vector2& pos, ServiceBranch
 	: MilitaryUnit(commandingunit, b, side)
 {
 	for(int i = 0; i < 4; i++) {
-		mUnits.push_back(std::shared_ptr<Platoon>(new Platoon(this, pos + spawnUnitDisplacement(), mBranch, mSide)));
+		std::shared_ptr<Platoon> p(new Platoon(this, pos + spawnUnitDisplacement(), mBranch, mSide));
+		mUnits.push_back(p);
+		Papaya::instance().addEntityPosition(p.get());
 	}
 }
 

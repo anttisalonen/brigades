@@ -44,6 +44,8 @@ PlatoonAIDefendState::PlatoonAIDefendState(Platoon* p, PlatoonAIController* c)
 	: PlatoonAIState(p, c),
 	mAsleep(false)
 {
+	mSteering.clear();
+	mSteering.setSeparation();
 }
 
 bool PlatoonAIDefendState::control(float dt)
@@ -51,6 +53,11 @@ bool PlatoonAIDefendState::control(float dt)
 	bool ret = false;
 	if(!mAsleep) {
 		mAsleep = true;
+		ret = true;
+	}
+	Vector2 diffvec = mSteering.steer();
+	if(diffvec.length() > 0.1f) {
+		mUnit->moveTowards(diffvec, dt);
 		ret = true;
 	}
 	return ret;
@@ -92,13 +99,14 @@ PlatoonAIMoveState::PlatoonAIMoveState(Platoon* p, PlatoonAIController* c, const
 	mTargetPos(t)
 {
 	mSteering.clear();
+	mSteering.setSeparation();
 	mSteering.setSeek(t);
 }
 
 bool PlatoonAIMoveState::control(float dt)
 {
 	Vector2 diffvec = mSteering.steer();
-	if(diffvec.length() > 0.5) {
+	if(diffvec.length() > 0.1f) {
 		mUnit->moveTowards(diffvec, dt);
 	}
 	else {
@@ -114,6 +122,7 @@ void PlatoonAIMoveState::receiveMessage(const Message& m)
 	switch(m.mType) {
 		case MessageType::Goto:
 			mTargetPos = m.mData->point;
+			mSteering.setSeek(mTargetPos);
 			break;
 
 		case MessageType::ClaimArea:
@@ -121,6 +130,7 @@ void PlatoonAIMoveState::receiveMessage(const Message& m)
 				Vector2 v((m.mData->area.x2 + m.mData->area.x1) / 2.0f,
 						(m.mData->area.y2 + m.mData->area.y1) / 2.0f);
 				mTargetPos = v;
+				mSteering.setSeek(mTargetPos);
 			}
 			break;
 
@@ -145,14 +155,15 @@ PlatoonAICombatState::PlatoonAICombatState(Platoon* p, PlatoonAIController* c, P
 	mEnemyPlatoon(ep)
 {
 	mSteering.clear();
+	mSteering.setSeparation();
 	mSteering.setSeek(ep->getPosition());
 }
 
 bool PlatoonAICombatState::control(float dt)
 {
-	mSteering.setSeek(mEnemyPlatoon->getPosition());
-	Vector2 diffvec = mSteering.steer();
-	if(diffvec.length() > 1.0f) {
+	if((mUnit->getPosition() - mEnemyPlatoon->getPosition()).length() > 1.0f) {
+		mSteering.setSeek(mEnemyPlatoon->getPosition());
+		Vector2 diffvec = mSteering.steer();
 		mUnit->moveTowards(diffvec, dt);
 	}
 	else {
