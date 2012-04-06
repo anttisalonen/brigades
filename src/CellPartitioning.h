@@ -3,6 +3,7 @@
 
 #include <list>
 #include <vector>
+#include <set>
 
 #include "Terrain.h"
 
@@ -18,12 +19,12 @@ class CellPartitioning {
 
 	private:
 		size_t getCellIndex(Vector2 v) const;
-		std::vector<std::list<T>> mCells;
+		std::vector<std::set<T>> mCells;
 		std::vector<T> mNeighbours;
 		int mCurrentNeighbour;
 
 		float mTotalWidth;
-		int mNumCells;
+		size_t mNumCells;
 		float mCellWidth;
 };
 
