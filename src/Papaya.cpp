@@ -53,9 +53,9 @@ void Papaya::setup(const Terrain* t)
 	armyConfiguration.push_back(ServiceBranch::Recon);
 	armyConfiguration.push_back(ServiceBranch::Signal);
 	armyConfiguration.push_back(ServiceBranch::Supply);
+	mPlatoonCells = CellPartitioning<Platoon*>(mTerrain->getWidth(), 128);
 	mArmies.push_back(std::shared_ptr<Army>(new Army(*mTerrain, base1, 1, armyConfiguration)));
 	mArmies.push_back(std::shared_ptr<Army>(new Army(*mTerrain, base2, 2, armyConfiguration)));
-	mPlatoonCells = CellPartitioning<Platoon*>(mTerrain->getWidth(), 16);
 }
 
 void Papaya::process(float dt)
@@ -137,5 +137,10 @@ Platoon* Papaya::getNextNeighbouringPlatoon()
 void Papaya::updateEntityPosition(Platoon* p, const Vector2& oldpos)
 {
 	mPlatoonCells.updateEntity(p, oldpos);
+}
+
+void Papaya::addEntityPosition(Platoon* p)
+{
+	mPlatoonCells.addEntity(p);
 }
 

@@ -30,6 +30,7 @@ class Papaya {
 		Platoon* getNeighbouringPlatoons(Platoon* p, float range);
 		Platoon* getNextNeighbouringPlatoon();
 		void updateEntityPosition(Platoon* p, const Vector2& oldpos);
+		void addEntityPosition(Platoon* p);
 	private:
 		const Terrain* mTerrain;
 		std::vector<std::shared_ptr<Army>> mArmies;
