@@ -17,6 +17,7 @@ struct Vector2 {
 	Vector2 normalized() const;
 	void operator+=(const Vector2& v2);
 	void operator*=(float f);
+	Vector2 operator*(float f) const;
 };
 
 std::ostream& operator<<(std::ostream& out, const Vector2& vec);

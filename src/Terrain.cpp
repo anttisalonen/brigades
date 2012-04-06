@@ -25,6 +25,11 @@ Vector2 Vector2::operator-(const Vector2& v2) const
 	return Vector2(x - v2.x, y - v2.y);
 }
 
+Vector2 Vector2::operator*(float f) const
+{
+	return Vector2(x * f, y * f);
+}
+
 float Vector2::length() const
 {
 	return sqrt(length2());
